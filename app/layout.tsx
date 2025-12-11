@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "App",
-  description: "Next.js App",
+  title: "Welcome to Our Platform | Your Company",
+  description: "Empowering developers to build amazing applications with modern tools and technologies",
 };
 
 export default function RootLayout({
