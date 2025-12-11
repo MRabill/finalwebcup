@@ -11,10 +11,10 @@ export default function Home() {
             Empowering developers to build amazing applications with modern tools and technologies
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-            <button className="px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+            <button type="button" className="px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors">
               Get Started
             </button>
-            <button className="px-8 py-3 border-2 border-gray-300 rounded-lg font-semibold hover:border-gray-400 transition-colors">
+            <button type="button" className="px-8 py-3 border-2 border-gray-300 rounded-lg font-semibold hover:border-gray-400 transition-colors">
               Learn More
             </button>
           </div>
@@ -103,7 +103,7 @@ export default function Home() {
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl font-bold mb-6">Ready to Get Started?</h2>
           <p className="text-xl mb-8">Join thousands of developers already using our platform</p>
-          <button className="px-8 py-3 bg-white text-blue-600 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+          <button type="button" className="px-8 py-3 bg-white text-blue-600 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
             Start Your Free Trial
           </button>
         </div>
