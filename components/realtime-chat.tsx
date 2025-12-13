@@ -25,6 +25,17 @@ interface RealtimeChatProps {
 }
 
 export function RealtimeChat({ roomId, userId }: RealtimeChatProps) {
+    // Guard against missing credentials so static export doesn't break.
+    if (!supabase) {
+        return (
+            <div className="flex h-full items-center justify-center rounded-lg border bg-white p-6 text-center text-gray-600">
+                Supabase credentials are not configured.
+            </div>
+        );
+    }
+
+    const client = supabase;
+
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -38,7 +49,7 @@ export function RealtimeChat({ roomId, userId }: RealtimeChatProps) {
     const loadMessages = async () => {
         try {
             setIsLoadingMessages(true);
-            const { data, error } = await supabase
+            const { data, error } = await client
                 .from('messages')
                 .select('*')
                 .eq('room_id', roomId)
@@ -70,7 +81,7 @@ export function RealtimeChat({ roomId, userId }: RealtimeChatProps) {
 
         console.log('Subscribing to room:', roomId);
 
-        const channel = supabase
+        const channel = client
             .channel(`room:${roomId}`)
             .on(
                 'postgres_changes',
@@ -94,7 +105,7 @@ export function RealtimeChat({ roomId, userId }: RealtimeChatProps) {
 
         return () => {
             if (channelRef.current) {
-                supabase.removeChannel(channelRef.current);
+                client.removeChannel(channelRef.current);
                 setIsConnected(false);
             }
         };
@@ -116,7 +127,7 @@ export function RealtimeChat({ roomId, userId }: RealtimeChatProps) {
         try {
             console.log('Sending message:', { roomId, userId, body: messageContent });
 
-            const { data, error } = await supabase.from('messages').insert([
+            const { data, error } = await client.from('messages').insert([
                 {
                     room_id: roomId,
                     user_id: userId,
