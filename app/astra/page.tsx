@@ -34,6 +34,13 @@ export default function AstraPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [chatSessionUUID, setChatSessionUUID] = useState<string>("");
     const [isChatOpen, setIsChatOpen] = useState(false);
+    const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
+    const [isPlayingVoice, setIsPlayingVoice] = useState(false);
+    const [voicePulse, setVoicePulse] = useState(0);
+    const audioRef = useRef<HTMLAudioElement>(null);
+    const audioContextRef = useRef<AudioContext | null>(null);
+    const analyserRef = useRef<AnalyserNode | null>(null);
+    const animationFrameRef = useRef<number | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -47,9 +54,117 @@ export default function AstraPage() {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
+    // Function to synthesize speech and play audio
+    const playVoiceOutput = async (text: string) => {
+        if (!isVoiceEnabled) return;
+
+        try {
+            setIsPlayingVoice(true);
+            const response = await fetch(
+                "https://mrabeel.app.n8n.cloud/webhook/f946994e-41a3-4e14-a2e2-93a1ef67bf37",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        textToSpeech: text,
+                    }),
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(`TTS error: ${response.statusText}`);
+            }
+
+            // Get the audio blob from the response
+            const audioBlob = await response.blob();
+            const audioUrl = URL.createObjectURL(audioBlob);
+
+            // Play the audio
+            if (audioRef.current) {
+                audioRef.current.src = audioUrl;
+                audioRef.current.play().catch((error) => {
+                    console.error("Error playing audio:", error);
+                });
+            }
+        } catch (error) {
+            console.error("Error synthesizing speech:", error);
+        } finally {
+            setIsPlayingVoice(false);
+        }
+    };
+
     useEffect(() => {
         scrollToBottom();
     }, [messages, isChatOpen]);
+
+    // Setup audio visualization when voice starts playing
+    useEffect(() => {
+        if (isPlayingVoice && audioRef.current) {
+            try {
+                // Initialize Web Audio API
+                const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+                const analyser = audioContext.createAnalyser();
+
+                // Create a source from the media element
+                const source = audioContext.createMediaElementAudioSource(audioRef.current);
+
+                source.connect(analyser);
+                analyser.connect(audioContext.destination);
+                analyser.fftSize = 256;
+
+                audioContextRef.current = audioContext;
+                analyserRef.current = analyser;
+
+                // Animation loop for pulse based on audio frequency
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+                const animate = () => {
+                    analyser.getByteFrequencyData(dataArray);
+
+                    // Calculate average frequency
+                    const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+
+                    // Normalize to 0-1 range and add some easing
+                    const pulse = Math.min(average / 255, 1);
+                    setVoicePulse(pulse);
+
+                    animationFrameRef.current = requestAnimationFrame(animate);
+                };
+
+                animate();
+            } catch (error) {
+                console.error("Error setting up audio visualization:", error);
+                // Fallback: simple pulse animation without frequency analysis
+                const simplePulse = () => {
+                    const time = Date.now() % 1000;
+                    const pulse = Math.sin(time / 200) * 0.5 + 0.5;
+                    setVoicePulse(pulse);
+                    animationFrameRef.current = requestAnimationFrame(simplePulse);
+                };
+                simplePulse();
+            }
+        } else {
+            // Cleanup animation frame and reset pulse
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+            }
+            setVoicePulse(0);
+
+            // Close audio context if it exists
+            if (audioContextRef.current) {
+                audioContextRef.current.close();
+                audioContextRef.current = null;
+            }
+        }
+
+        return () => {
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+            }
+        };
+    }, [isPlayingVoice]);
 
     const handleSendPrompt = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -94,6 +209,14 @@ export default function AstraPage() {
             };
 
             setMessages((prev) => [...prev, aiResponse]);
+
+            // Play voice output if enabled
+            if (isVoiceEnabled) {
+                const cleanText = removeImageUrl(data.output || "");
+                if (cleanText) {
+                    await playVoiceOutput(cleanText);
+                }
+            }
         } catch (error) {
             console.error("Error sending message:", error);
 
@@ -189,10 +312,29 @@ mainOrbHueAnimation = { true}
 <div className="relative z-50 flex h-[80vh] w-full max-w-5xl flex-col overflow-visible rounded-3xl border border-cyan-500/40 bg-slate-950/90 shadow-[0_0_80px_rgba(34,211,238,0.7)]" >
     {/* Orb centered on top */ }
     < div className = "pointer-events-none absolute -top-16 left-1/2 -translate-x-1/2" >
-        <div className="relative h-28 w-28" >
-            <div className="absolute inset-0 blur-2xl bg-cyan-400/30" />
-                <div className="relative flex h-full w-full items-center justify-center rounded-full border border-cyan-400/60 bg-slate-950/70 shadow-[0_0_45px_rgba(34,211,238,0.9)]" >
-                    <Orb
+        <div 
+            className="relative h-28 w-28 transition-all duration-100"
+style = {{
+    transform: isPlayingVoice
+        ? `scale(${1 + voicePulse * 0.3})`
+        : "scale(1)",
+            }}
+        >
+    <div 
+                className={
+    `absolute inset-0 blur-3xl transition-all duration-100 ${isPlayingVoice
+        ? "bg-cyan-400/60 opacity-100"
+        : "bg-cyan-400/30 opacity-50"
+    }`
+}
+style = {{
+    boxShadow: isPlayingVoice
+        ? `0 0 ${30 + voicePulse * 50}px rgba(34, 211, 238, ${0.6 + voicePulse * 0.4})`
+        : "0 0 30px rgba(34, 211, 238, 0.3)",
+                }}
+            />
+    < div className = "relative flex h-full w-full items-center justify-center rounded-full border border-cyan-400/60 bg-slate-950/70 shadow-[0_0_45px_rgba(34,211,238,0.9)]" >
+        <Orb
                     palette={
     {
         mainBgStart: "rgb(34, 211, 238)",
@@ -215,7 +357,7 @@ mainOrbHueAnimation = { true}
                     }
 }
 size = { 1.6}
-animationSpeedBase = { 1.5}
+animationSpeedBase = { 1.5 + voicePulse * 2 }
 animationSpeedHue = { 1}
 hueRotation = { 210}
 mainOrbHueAnimation = { true}
@@ -307,7 +449,7 @@ onError = {(e) => {
         `relative rounded-xl border px-4 py-3 text-base leading-relaxed shadow-[0_0_20px_rgba(15,23,42,0.9)] backdrop-blur-md ${message.isUser
             ? "border-cyan-400/60 bg-cyan-500/10 text-cyan-100"
             : "border-fuchsia-400/60 bg-fuchsia-500/10 text-fuchsia-100"
-        }`
+            }`
     }
                                 >
         {!message.isUser && (
@@ -336,8 +478,8 @@ onError = {(e) => {
 
             < div
 className = {`pointer-events-none absolute inset-0 rounded-xl border border-transparent ${message.isUser
-        ? "shadow-[0_0_25px_rgba(34,211,238,0.65)]"
-        : "shadow-[0_0_25px_rgba(236,72,153,0.65)]"
+    ? "shadow-[0_0_25px_rgba(34,211,238,0.65)]"
+    : "shadow-[0_0_25px_rgba(236,72,153,0.65)]"
     } opacity-30`}
                                   />
     </div>
@@ -375,7 +517,7 @@ type = "text"
 placeholder = "Type a prompt to ping the ASTRA - Λ core..."
 value = { prompt }
 onChange = {(e) => setPrompt(e.target.value)}
-className = "h-10 border-0 bg-transparent text-sm text-cyan-100 placeholder:text-slate-600 focus-visible:ring-0 focus-visible:ring-offset-0"
+className = "h-10 border-0 bg-transparent text-base text-cyan-100 placeholder:text-slate-600 focus-visible:ring-0 focus-visible:ring-offset-0"
 disabled = { isLoading }
     />
     </div>
@@ -383,9 +525,20 @@ disabled = { isLoading }
     < div className = "flex flex-wrap items-center justify-between gap-3" >
         <div className="flex gap-3" >
             <Button
-                        type="submit"
-disabled = {!prompt.trim() || isLoading}
-className = "font-orbitron bg-cyan-400 px-8 py-2 text-xs font-semibold tracking-[0.32em] text-slate-950 hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
+                        type="button"
+onClick = {() => setIsVoiceEnabled(!isVoiceEnabled)}
+className = {`px-6 py-2 text-sm font-orbitron tracking-[0.28em] transition-all duration-300 border ${isVoiceEnabled
+    ? "bg-emerald-500/20 border-emerald-500/60 text-emerald-300 hover:bg-emerald-500/30"
+    : "border-slate-500/60 bg-transparent text-slate-400 hover:border-slate-400 hover:bg-slate-500/10"
+    }`}
+title = { isVoiceEnabled? "Voice output enabled": "Voice output disabled" }
+    >
+    { isVoiceEnabled? "🔊 VOICE ON": "🔇 VOICE OFF" }
+    </Button>
+    < Button
+type = "submit"
+disabled = {!prompt.trim() || isLoading || isPlayingVoice}
+className = "font-orbitron bg-cyan-400 px-8 py-2 text-sm font-semibold tracking-[0.32em] text-slate-950 hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
     >
     TRANSMIT
     </Button>
@@ -396,24 +549,31 @@ onClick = {() => {
     setPrompt("");
 }}
 variant = "outline"
-className = "border-fuchsia-500/60 bg-transparent px-6 py-2 text-xs font-orbitron tracking-[0.28em] text-fuchsia-300 hover:border-fuchsia-400 hover:bg-fuchsia-500/10"
+className = "border-fuchsia-500/60 bg-transparent px-6 py-2 text-sm font-orbitron tracking-[0.28em] text-fuchsia-300 hover:border-fuchsia-400 hover:bg-fuchsia-500/10"
     >
     PURGE LOG
         </Button>
         </div>
 
-        < div className = "flex items-center gap-2 text-[10px] font-sarpanch uppercase tracking-[0.22em] text-slate-500" >
-            <span className="h-1 w-1 animate-pulse rounded-full bg-emerald-400" />
+        < div className = "flex items-center gap-2 text-xs font-sarpanch uppercase tracking-[0.22em] text-slate-500" >
+            <span className = "h-1 w-1 animate-pulse rounded-full bg-emerald-400" />
                 <span>
                 linked to astra - λ mesh // route: mrabeel.n8n.cloud
                     </span>
                     </div>
                     </div>
                     </form>
-                    </div>
-                    </main>
-                    </div>
-                    </div>
+
+{/* Hidden audio element for voice output */ }
+<audio
+                        ref={ audioRef }
+onEnded = {() => setIsPlayingVoice(false)}
+style = {{ display: "none" }}
+                    />
+    </div>
+    </main>
+    </div>
+    </div>
       )}
 </div>
   );
