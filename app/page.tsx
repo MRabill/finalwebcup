@@ -1,3 +1,5 @@
+import SolarSystem from "@/components/SolarSystem";
+
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col">
