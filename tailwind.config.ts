@@ -21,6 +21,11 @@ const config = {
     extend: {
       fontFamily: {
         lexend: ["Lexend", "sans-serif"],
+        orbitron: ["var(--font-orbitron)", "sans-serif"],
+        audiowide: ["var(--font-audiowide)", "sans-serif"],
+        sarpanch: ["var(--font-sarpanch)", "sans-serif"],
+        "russo-one": ["var(--font-russo-one)", "sans-serif"],
+        "major-mono": ["var(--font-major-mono-display)", "monospace"],
       },
       colors: {
         border: "hsl(var(--border))",
