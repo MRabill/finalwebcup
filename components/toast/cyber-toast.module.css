@@ -1,0 +1,143 @@
+.container {
+  position: fixed;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  pointer-events: none;
+  font-family: "Courier New", Courier, monospace;
+}
+
+.topRight {
+  top: 30px;
+  right: 30px;
+}
+
+.toast {
+  min-width: 300px;
+  max-width: 420px;
+  padding: 18px 18px 16px;
+  /* Lower opacity so the scene shows through */
+  background: rgba(10, 10, 15, 0.62);
+  border: 1px solid;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  position: relative;
+  pointer-events: auto;
+  cursor: pointer;
+  backdrop-filter: blur(10px) saturate(1.2);
+  -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+    0 18px 45px rgba(0, 0, 0, 0.55);
+
+  opacity: 0;
+  transform: translateX(50px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+
+  /* subtle "hud" texture + scanlines */
+  background-image:
+    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+    linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05)),
+    radial-gradient(circle at 20% 10%, rgba(255, 255, 255, 0.06), transparent 55%),
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 100% 2px, 3px 100%, 120% 140%, 22px 22px, 22px 22px;
+  background-position: 0 0, 0 0, 0 0, 0 0, 0 0;
+}
+
+.toast::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 15px;
+  height: 15px;
+  /* match toast translucency (avoid hard black notch) */
+  background: rgba(0, 0, 0, 0.35);
+  border-top: 1px solid;
+  border-left: 1px solid;
+  border-color: inherit;
+}
+
+.success {
+  border-color: #00ff41;
+  color: #00ff41;
+  box-shadow:
+    0 0 0 1px rgba(0, 255, 65, 0.18) inset,
+    0 0 22px rgba(0, 255, 65, 0.22);
+}
+
+.error {
+  border-color: #ff0055;
+  color: #ff0055;
+  box-shadow:
+    0 0 0 1px rgba(255, 0, 85, 0.18) inset,
+    0 0 22px rgba(255, 0, 85, 0.22);
+}
+
+.info {
+  border-color: #00d9ff;
+  color: #00d9ff;
+  box-shadow:
+    0 0 0 1px rgba(0, 217, 255, 0.18) inset,
+    0 0 22px rgba(0, 217, 255, 0.22);
+}
+
+.visible {
+  opacity: 1;
+  transform: translateX(0);
+  animation: glitchAnim 0.3s ease-out;
+}
+
+.header {
+  font-size: 10px;
+  opacity: 0.75;
+  margin-bottom: 6px;
+  letter-spacing: 1.5px;
+}
+
+.textRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cursor {
+  display: inline-block;
+  width: 8px;
+  height: 14px;
+  background-color: currentColor;
+  animation: blink 1s infinite;
+  vertical-align: middle;
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes glitchAnim {
+  0% {
+    transform: translateX(50px) skewX(0deg);
+  }
+  20% {
+    transform: translateX(-10px) skewX(-10deg);
+  }
+  40% {
+    transform: translateX(5px) skewX(5deg);
+  }
+  60% {
+    transform: translateX(-2px) skewX(0deg);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
