@@ -172,13 +172,21 @@ const FORM_STEPS = [
 ];
 
 const CAMERA_WAYPOINTS = [
-    { pos: new THREE.Vector3(0, 3.2, 14), look: new THREE.Vector3(0, 2, 0) },    // Start
-    { pos: new THREE.Vector3(0, 2, 8), look: new THREE.Vector3(0, 1, -5) },      // Step 1: Approach
-    { pos: new THREE.Vector3(-4, 1.5, 2), look: new THREE.Vector3(2, 1, -10) },  // Step 2: Left Alley
-    { pos: new THREE.Vector3(4, 3, -6), look: new THREE.Vector3(-2, 0, -15) },   // Step 3: Right High
-    { pos: new THREE.Vector3(0, 6, -2), look: new THREE.Vector3(0, 2, -20) },    // Step 4: Inside City (Safe Mid-Level)
-    { pos: new THREE.Vector3(0, 15, -10), look: new THREE.Vector3(0, 0, -10) },   // Step 5: Avatar Selection (New)
-    { pos: new THREE.Vector3(20, 25, 10), look: new THREE.Vector3(0, -5, -10) },  // Step 6: Isometric View
+    { pos: new THREE.Vector3(0, 3.2, 14), look: new THREE.Vector3(0, 2, 0) },     // 0: Start - Intro (Gate)
+    { pos: new THREE.Vector3(0, 2, 5), look: new THREE.Vector3(0, 2, -10) },      // 1: Approach - Callsign (Main Street)
+    { pos: new THREE.Vector3(-8, 2, 0), look: new THREE.Vector3(0, 2, -10) },     // 2: Left Side - Access Code (Looking Center)
+    { pos: new THREE.Vector3(8, 4, -5), look: new THREE.Vector3(0, 1, -10) },     // 3: Right Mid - Quantum Mail (Looking Center)
+    { pos: new THREE.Vector3(-6, 8, -15), look: new THREE.Vector3(5, 0, -5) },    // 4: Back Left High - Home Sector
+    { pos: new THREE.Vector3(6, 3, -20), look: new THREE.Vector3(-5, 5, -5) },    // 5: Back Right Low - Species Origin (Looking Up)
+    { pos: new THREE.Vector3(0, 1.5, -10), look: new THREE.Vector3(0, 15, -10) }, // 6: Center Ground - Skills (Looking Way Up)
+    { pos: new THREE.Vector3(-10, 5, -5), look: new THREE.Vector3(10, 2, -15) },  // 7: Wide Left - Vibes
+    { pos: new THREE.Vector3(10, 6, -10), look: new THREE.Vector3(-10, 2, 0) },   // 8: Wide Right - Love Mood
+    { pos: new THREE.Vector3(0, 10, 0), look: new THREE.Vector3(0, 0, -20) },     // 9: High Front - Looking For (Looking Down)
+    { pos: new THREE.Vector3(-5, 2, -18), look: new THREE.Vector3(0, 5, -10) },   // 10: Deep Alley - Age
+    { pos: new THREE.Vector3(5, 8, 5), look: new THREE.Vector3(-5, 0, -15) },     // 11: Front Roof - Height
+    { pos: new THREE.Vector3(0, 1.5, 2), look: new THREE.Vector3(0, 2, -20) },    // 12: Street Level - Short Bio (Classic View)
+    { pos: new THREE.Vector3(0, 3, -5), look: new THREE.Vector3(0, 1, -15) },     // 13: Close Up - Avatar Select
+    { pos: new THREE.Vector3(20, 20, 20), look: new THREE.Vector3(0, 0, -10) },   // 14: Isometric Final - Success
 ];
 
 export default function ParallaxLogin({ onBack, isActive = true }: { onBack?: () => void, isActive?: boolean }) {

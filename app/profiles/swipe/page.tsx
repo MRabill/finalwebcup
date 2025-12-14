@@ -4,8 +4,88 @@ import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import matchResults from "../match-results.json";
 import "@/app/profile/animations.css"; // Ensure animations are loaded
+import AstraChat from "@/components/astra-chat";
 
-type Profile = (typeof matchResults.output)[number];
+type Profile = (typeof matchResults.output)[number] & { isPremium?: boolean };
+
+// --- Paywall Overlay ---
+function PaywallOverlay({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/95 backdrop-blur-md animate-in fade-in duration-300">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)]" />
+      
+      {/* Background Grid */}
+      <div 
+        className="absolute inset-0 opacity-20 pointer-events-none"
+        style={{
+          backgroundImage: "linear-gradient(rgba(234, 179, 8, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(234, 179, 8, 0.1) 1px, transparent 1px)",
+          backgroundSize: "40px 40px"
+        }}
+      />
+
+      {/* Side Decorations - Gold Theme */}
+      <div className="absolute top-0 left-0 bottom-0 w-1/3 pointer-events-none hidden md:block overflow-hidden">
+         <div className="absolute top-20 left-8 text-[12rem] font-black text-yellow-500/5 opacity-50" style={{ writingMode: 'vertical-rl', textOrientation: 'upright', fontFamily: 'Orbitron, sans-serif' }}>
+           PREMIUM
+         </div>
+         <div className="absolute bottom-40 left-0 w-full h-[1px] bg-gradient-to-r from-yellow-500/20 to-transparent" />
+         <div className="absolute top-1/2 left-8 text-[10px] font-mono text-yellow-500/30 space-y-1">
+            {Array.from({length: 8}).map((_, i) => (
+               <div key={i}>0x{Math.random().toString(16).slice(2, 10).toUpperCase()}</div>
+            ))}
+         </div>
+      </div>
+
+      <div className="absolute top-0 right-0 bottom-0 w-1/3 pointer-events-none hidden md:block overflow-hidden">
+         <div className="absolute bottom-20 right-4 text-[14rem] font-black text-yellow-500/5 leading-none select-none" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+          VIP
+         </div>
+         <div className="absolute top-0 right-20 w-[1px] h-full bg-gradient-to-b from-yellow-500/20 to-transparent" />
+      </div>
+
+      <div className="relative z-10 max-w-md w-full p-8 border border-yellow-500/30 bg-black/80 shadow-[0_0_50px_rgba(234,179,8,0.2)]">
+         {/* Cyber Frame */}
+         <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-yellow-500" />
+         <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-yellow-500" />
+         <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-yellow-500" />
+         <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-yellow-500" />
+
+         <div className="text-center space-y-6">
+            <div className="w-20 h-20 mx-auto rounded-full border-2 border-dashed border-yellow-500 flex items-center justify-center animate-[spin_10s_linear_infinite]">
+               <div className="w-16 h-16 rounded-full bg-yellow-500/20 flex items-center justify-center animate-none">
+                  <span className="text-3xl">🔒</span>
+               </div>
+            </div>
+            
+            <div>
+                <h2 className="text-3xl font-black text-white italic tracking-tighter mb-2">
+                    ACCESS <span className="text-yellow-500">DENIED</span>
+                </h2>
+                <p className="text-yellow-200/60 font-mono text-sm tracking-wider">
+                    THIS SIGNAL IS ENCRYPTED. <br/> 
+                    UPGRADE TO <span className="text-yellow-400 font-bold">ASTRA GOLD</span> TO DECYPHER.
+                </p>
+            </div>
+
+            <div className="space-y-3 pt-4">
+                <button 
+                    onClick={onClose}
+                    className="w-full py-4 bg-gradient-to-r from-yellow-600 to-yellow-500 text-black font-black tracking-[0.2em] hover:shadow-[0_0_20px_rgba(234,179,8,0.6)] transition-all uppercase skew-x-[-10deg]"
+                >
+                    <span className="block skew-x-[10deg]">UPGRADE ACCESS</span>
+                </button>
+                <button 
+                    onClick={onClose}
+                    className="w-full py-3 text-white/40 font-mono text-xs hover:text-white transition-colors uppercase tracking-widest"
+                >
+                    RETURN TO FEED
+                </button>
+            </div>
+         </div>
+      </div>
+    </div>
+  );
+}
 
 // --- Cyberpunk Match Overlay ---
 function MatchOverlay({ profile }: { profile: Profile }) {
@@ -161,19 +241,54 @@ function MatchOverlay({ profile }: { profile: Profile }) {
 
 // --- Cyberpunk Card Component ---
 const CyberCard = ({ profile }: { profile: Profile }) => {
+  const isLocked = profile.isPremium;
+
   return (
     <div className="relative w-full h-full overflow-hidden bg-black/80 border border-cyan-500/30">
       {/* Background Image with Overlay */}
       <div 
         className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url(${profile.avatar_url ?? ""})` }}
+        style={{ 
+            backgroundImage: `url(${profile.avatar_url ?? ""})`,
+            filter: isLocked ? "blur(15px) brightness(0.6)" : "none"
+        }}
       >
         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-90" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-10 pointer-events-none bg-[length:100%_4px,6px_100%]" />
       </div>
 
+      {isLocked && (
+        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center p-6 text-center">
+            {/* Locked Overlay Decoration */}
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
+            <div className="absolute top-0 left-0 w-full h-[1px] bg-yellow-500/50 animate-scan" />
+            
+            <div className="relative z-50">
+                <div className="w-24 h-24 border-2 border-yellow-500 rounded-full flex items-center justify-center mb-6 bg-black/80 backdrop-blur-md shadow-[0_0_40px_rgba(234,179,8,0.3)] mx-auto relative group">
+                    <div className="absolute inset-0 rounded-full border border-yellow-500 animate-ping opacity-20" />
+                    <span className="text-5xl drop-shadow-[0_0_10px_rgba(234,179,8,0.8)]">🔒</span>
+                </div>
+                
+                <h3 className="text-4xl font-black text-yellow-500 tracking-tighter mb-2 italic drop-shadow-[0_0_15px_rgba(234,179,8,0.5)] glitch" data-glitch="CLASSIFIED">
+                    CLASSIFIED
+                </h3>
+                
+                <div className="flex items-center justify-center gap-2 mb-4">
+                    <span className="h-[1px] w-8 bg-yellow-500/50" />
+                    <span className="text-yellow-200/90 font-mono text-[10px] tracking-[0.3em] font-bold">TOP SECRET</span>
+                    <span className="h-[1px] w-8 bg-yellow-500/50" />
+                </div>
+
+                <p className="text-yellow-100/60 font-mono text-xs max-w-[240px] mx-auto leading-relaxed border border-yellow-500/20 p-2 bg-yellow-900/10">
+                    <span className="text-yellow-400 font-bold">&gt; ERROR:</span> SECURITY LEVEL INSUFFICIENT.<br/>
+                    <span className="animate-pulse">_SIGNAL_ENCRYPTED</span>
+                </p>
+            </div>
+        </div>
+      )}
+
       {/* Cyber Frame */}
-      <div className="absolute inset-0 pointer-events-none z-20">
+      <div className={`absolute inset-0 pointer-events-none z-20 ${isLocked ? "opacity-30" : ""}`}>
         <div className="absolute top-0 left-0 w-8 h-[2px] bg-cyan-500" />
         <div className="absolute top-0 left-0 w-[2px] h-8 bg-cyan-500" />
         <div className="absolute top-0 right-0 w-8 h-[2px] bg-cyan-500" />
@@ -194,13 +309,19 @@ const CyberCard = ({ profile }: { profile: Profile }) => {
           <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
           <span className="text-[10px] text-cyan-400 font-mono tracking-wider">ONLINE</span>
         </div>
-        <div className="px-2 py-1 bg-black/60 border border-pink-500/50 backdrop-blur-md">
-           <span className="text-[10px] text-pink-400 font-mono tracking-wider">{profile.match_score}% MATCH</span>
-        </div>
+        {isLocked ? (
+             <div className="px-2 py-1 bg-yellow-500/20 border border-yellow-500/50 backdrop-blur-md">
+                <span className="text-[10px] text-yellow-400 font-mono tracking-wider font-bold">GOLD TIER</span>
+             </div>
+        ) : (
+            <div className="px-2 py-1 bg-black/60 border border-pink-500/50 backdrop-blur-md">
+               <span className="text-[10px] text-pink-400 font-mono tracking-wider">{profile.match_score}% MATCH</span>
+            </div>
+        )}
       </div>
 
       {/* Content */}
-      <div className="absolute bottom-0 left-0 right-0 p-6 z-30 bg-gradient-to-t from-black via-black/80 to-transparent pt-20">
+      <div className={`absolute bottom-0 left-0 right-0 p-6 z-30 bg-gradient-to-t from-black via-black/80 to-transparent pt-20 ${isLocked ? "opacity-50 blur-sm grayscale" : ""}`}>
         <h2 className="text-3xl font-black text-white italic tracking-tighter mb-2 drop-shadow-[0_0_10px_rgba(0,255,255,0.5)]">
           {profile.alias}
         </h2>
@@ -231,11 +352,47 @@ const CyberCard = ({ profile }: { profile: Profile }) => {
 
 export default function SwipeProfiles() {
   const router = useRouter();
-  const profiles = useMemo<Profile[]>(() => matchResults.output as Profile[], []);
+  const profiles = useMemo<Profile[]>(() => {
+    const original = matchResults.output as Profile[];
+    const dummy: Profile[] = [
+      {
+        candidate_id: "dummy-1",
+        alias: "CyberVixen",
+        avatar_url: "/assets/images/wlop3.jpg",
+        match: true,
+        match_score: 95,
+        confidence: 0.98,
+        risk_level: "LOW",
+        chemistry_index: 92,
+        stability_index: 85,
+        drama_potential: 15,
+        diplomatic_impact: "ALLIANCE",
+        notes: "High compatibility detected. Neural sync optimal.",
+        isPremium: true
+      },
+      {
+        candidate_id: "dummy-2",
+        alias: "DataDrifter",
+        avatar_url: "/assets/images/wlop6.jpg",
+        match: false,
+        match_score: 42,
+        confidence: 0.55,
+        risk_level: "CRITICAL",
+        chemistry_index: 30,
+        stability_index: 20,
+        drama_potential: 90,
+        diplomatic_impact: "WAR",
+        notes: "Warning: Unstable personality matrix. Proceed with caution.",
+        isPremium: true
+      }
+    ];
+    return [...original, ...dummy];
+  }, []);
   const [index, setIndex] = useState(0);
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [showMatchOverlay, setShowMatchOverlay] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
   const [matchedProfile, setMatchedProfile] = useState<Profile | null>(null);
   const startXRef = useRef<number | null>(null);
   const whooshRef = useRef<HTMLAudioElement | null>(null);
@@ -285,6 +442,15 @@ export default function SwipeProfiles() {
     (direction: "left" | "right") => {
       if (!current) return;
       
+      // Paywall Logic for Premium Cards (Right Swipe only)
+      if (current.isPremium && direction === "right") {
+        setShowPaywall(true);
+        // Reset card position
+        setIsDragging(false);
+        setDragX(0);
+        return;
+      }
+
       if (direction === "right" && current.match) {
         // Play match sound
         playMatchSound();
@@ -554,6 +720,11 @@ export default function SwipeProfiles() {
       
       {/* Match Overlay */}
       {showMatchOverlay && matchedProfile && <MatchOverlay profile={matchedProfile} />}
+      
+      {/* Paywall Overlay */}
+      {showPaywall && <PaywallOverlay onClose={() => setShowPaywall(false)} />}
+
+      <AstraChat position="bottom-right" />
     </main>
   );
 }
