@@ -5,7 +5,7 @@ import { ArrowLeft, Check } from "lucide-react";
 import IconButton from "./IconButton";
 import Loader from "./loader/Loader";
 import { useCyberToast } from "@/components/toast";
-import { sendOnboardingToWebhook } from "@/lib/api/onboarding";
+import { sendOnboardingToWebhook, DEFAULT_AVATAR_URL } from "@/lib/api/onboarding";
 import { useRouter } from "next/navigation";
 import * as THREE from "three";
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -15,6 +15,7 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { SimplexNoise } from 'three/examples/jsm/math/SimplexNoise.js';
 import { motion, AnimatePresence } from "framer-motion";
+import { supabase, hasSupabaseCredentials } from "@/lib/supabase";
 
 const CONFIG = {
     bgColor: 0x000000, // Pitch black
@@ -214,6 +215,29 @@ export default function ParallaxLogin({ onBack, isActive = true }: { onBack?: ()
         return () => window.clearTimeout(t);
     }, [isActive]);
 
+    const createUserOnly = async (finalPayload: Record<string, any>) => {
+        if (!supabase || !hasSupabaseCredentials) {
+            throw new Error("Supabase not configured");
+        }
+        const username = (finalPayload.callsign || "user").toString();
+        const password = (finalPayload.access_code || "TempPass!123").toString();
+        // Supabase requires a valid-looking email; map username to a synthetic-but-valid domain
+        const email = `${username.toLowerCase()}@cyberpunk.dev`;
+
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    alias: username,
+                },
+            },
+        });
+        if (authError) throw authError;
+
+        return authData;
+    };
+
     const handleNext = async () => {
         if (isSubmitting) return;
         const currentStepConfig = FORM_STEPS[currentStep];
@@ -265,10 +289,15 @@ export default function ParallaxLogin({ onBack, isActive = true }: { onBack?: ()
             cyberToast.show("UPLINKING CREDENTIALS...", "info");
 
             try {
+                // 1) Create Supabase auth user
+                await createUserOnly(finalPayload);
+
+                // 2) Fire webhook (optional external logging)
                 await sendOnboardingToWebhook(finalPayload);
+
                 cyberToast.show("DATASTREAM SYNCED", "success");
             } catch (e) {
-                const msg = e instanceof Error ? e.message : "WEBHOOK FAILED";
+                const msg = e instanceof Error ? e.message : "ONBOARDING FAILED";
                 cyberToast.show(`CRITICAL FAILURE: ${msg}`, "error");
                 setIsSubmitting(false);
                 return; // stay on this step
