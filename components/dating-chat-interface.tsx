@@ -12,6 +12,8 @@ interface ChatMessage {
     sender: 'user' | 'ai';
     message: string;
     timestamp: Date;
+    translation?: string;
+    isTranslating?: boolean;
 }
 
 interface DatingChatInterfaceProps {
@@ -187,15 +189,41 @@ export default function DatingChatInterface({ targetAlias, targetAvatar, onClose
             ]);
 
             // Simulate decryption time
-            setTimeout(() => {
+            setTimeout(async () => {
                 setMessages((prev) => prev.filter((m) => m.message !== '[DECRYPTING...]'));
-                const aiMsg: ChatMessage = {
-                    id: uuidv4(),
-                    sender: 'ai',
-                    message: data.output || 'Signal lost. Try again.',
-                    timestamp: new Date(),
-                };
-                setMessages((prev) => [...prev, aiMsg]);
+
+                const aiResponse = data.output || 'Signal lost. Try again.';
+
+                // Parse MESSAGE and TRANSLATION format
+                const messageMatch = aiResponse.match(/MESSAGE:\s*"([^"]+)"/);
+                const translationMatch = aiResponse.match(/TRANSLATION:\s*"([^"]+)"/);
+
+                const hasTranslationFormat = messageMatch && translationMatch;
+
+                if (hasTranslationFormat) {
+                    // Extract message and translation from parsed format
+                    const message = messageMatch![1];
+                    const translation = translationMatch![1];
+
+                    const aiMsg: ChatMessage = {
+                        id: uuidv4(),
+                        sender: 'ai',
+                        message: message,
+                        timestamp: new Date(),
+                        translation: translation,
+                        isTranslating: true,
+                    };
+                    setMessages((prev) => [...prev, aiMsg]);
+                } else {
+                    const aiMsg: ChatMessage = {
+                        id: uuidv4(),
+                        sender: 'ai',
+                        message: aiResponse,
+                        timestamp: new Date(),
+                    };
+                    setMessages((prev) => [...prev, aiMsg]);
+                }
+
                 setIsLoading(false);
             }, 1500);
         } catch (error) {
@@ -345,6 +373,26 @@ export default function DatingChatInterface({ targetAlias, targetAvatar, onClose
                                                             <p className={!message.sender ? "font-russo-one text-sm" : ""}>
                                                                 {textContent}
                                                             </p>
+
+                                                            {/* Translation Display */}
+                                                            {message.translation && message.isTranslating && (
+                                                                <div className="mt-4 pt-4 border-t border-yellow-500/30 space-y-2">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="h-1 w-1 rounded-full bg-yellow-400 animate-pulse" />
+                                                                        <span className="font-sarpanch text-xs uppercase tracking-[0.28em] text-yellow-400/80">
+                                                                            TRANSLATING...
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="rounded-lg bg-yellow-500/5 border border-yellow-500/20 px-3 py-2">
+                                                                        <p className="font-sarpanch text-xs uppercase tracking-[0.18em] text-yellow-300/70 mb-1">
+                                                                            [LANGUE: FRANÇAIS]
+                                                                        </p>
+                                                                        <p className="text-sm text-yellow-200/90 leading-relaxed">
+                                                                            {message.translation}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            )}
 
                                                             <div className="mt-2 flex items-center justify-end gap-2 text-xs font-sarpanch uppercase tracking-[0.18em] text-slate-400">
                                                                 <span className="h-[3px] w-8 bg-gradient-to-r from-transparent via-slate-500/70 to-transparent" />
