@@ -139,8 +139,8 @@ const FORM_STEPS = [
         type: "number",
         placeholder: "25",
         hint: "Temporal signature (18+)",
-        pattern: /^(?:1[89]|[2-9]\d)$/,
-        errorMsg: "INVALID AGE",
+        pattern: null,
+        errorMsg: "",
     },
     {
         id: "height_cm",

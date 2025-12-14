@@ -1487,16 +1487,20 @@ export default function SolarSystem({ onLogin }: { onLogin: () => void }) {
           {/* Footer Section */}
           <div className="flex justify-between items-end">
              {/* Bottom Left Coords */}
-             <div className="relative mb-4 ml-2">
-               <div className="flex gap-8 text-white/50 font-mono text-xs backdrop-blur-sm p-4 rounded border border-white/5 bg-black/20">
-                  <div className="flex flex-col">
-                     <span className="text-pink-500 text-[20px] mb-1 font-bold tracking-widest">POS_X</span>
-                     <RandomCharacters length={6} className="text-[20px] text-white/80 leading-none" />
-                  </div>
-                  <div className="flex flex-col">
-                     <span className="text-cyan-500 text-[20px] mb-1 font-bold tracking-widest">POS_Y</span>
-                     <RandomCharacters length={6} className="text-[20px] text-white/80 leading-none" />
-                  </div>
+             <div className="relative -ml-6 translate-y-4">
+               <div className={`relative transition-all duration-100 ${glitchActive ? 'translate-x-1 -translate-y-1 skew-x-12 opacity-50' : 'opacity-90'}`}>
+                  <img 
+                    src="/Astra pattern.png" 
+                    alt="Astra Match Engine" 
+                    className="w-48 md:w-64 mix-blend-screen object-contain drop-shadow-[0_0_15px_rgba(6,182,212,0.3)]"
+                  />
+                  {glitchActive && (
+                    <img 
+                        src="/Astra pattern.png" 
+                        alt="Glitch Layer"
+                        className="absolute inset-0 w-full h-full mix-blend-overlay opacity-70 translate-x-2 translate-y-[-2px] saturate-200"
+                    />
+                  )}
                </div>
              </div>
 
