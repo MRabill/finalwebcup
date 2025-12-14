@@ -106,7 +106,6 @@ export default function ProfilePageContent({ profile }: { profile: ProfileData }
                                 </div>
                             </div>
                             <div className="text-[9px] text-gray-500 font-mono uppercase tracking-[0.25em] text-right">
-                                <div>ID #{profile.id.slice(0, 8).toUpperCase()}</div>
                                 <div>{profile.archetype} / {profile.augmentation_level}</div>
                             </div>
                         </div>
