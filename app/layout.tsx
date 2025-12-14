@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Orbitron, Audiowide, Sarpanch, Russo_One, Major_Mono_Display } from "next/font/google";
 import "../styles/globals.css";
+import { CyberToastProvider } from "@/components/toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -54,8 +55,10 @@ export default function RootLayout({
   return (
     <html lang= "en" >
     <body className={ `${geistSans.variable} ${geistMono.variable} ${orbitron.variable} ${audiowide.variable} ${sarpanch.variable} ${russoOne.variable} ${majorMonoDisplay.variable}` }>
-      { children }
-      </body>
+      <CyberToastProvider>
+        { children }
+      </CyberToastProvider>
+    </body>
       </html>
   );
 }
