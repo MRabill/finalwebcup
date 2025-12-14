@@ -7,6 +7,8 @@ import { EffectComposer, Bloom, Glitch } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { X, Heart, XCircle, Aperture, Activity, Radio, Crosshair } from "lucide-react";
 
+import ParallaxLogin from "./ParallaxLogin";
+
 // --- Data & Configuration ---
 
 interface MoonData {
@@ -251,7 +253,7 @@ function OrbitPath({ radius }: { radius: number }) {
 }
 
 
-function LoginCard({ className = "" }: { className?: string }) {
+function LoginCard({ className = "", onLogin }: { className?: string, onLogin: () => void }) {
   return (
     <div className={`bg-black/90 p-8 rounded-xl relative overflow-hidden group border border-blue-900/50 ${className}`}>
        {/* Background Grid Pattern */}
@@ -296,7 +298,7 @@ function LoginCard({ className = "" }: { className?: string }) {
            className="w-full mt-4 bg-transparent border-2 border-pink-500 rounded-full py-3 text-pink-500 text-xl font-bold tracking-widest hover:bg-pink-500 hover:text-white transition-all duration-300 shadow-[0_0_15px_rgba(255,0,255,0.3)] hover:shadow-[0_0_30px_rgba(255,0,255,0.6)] font-mono uppercase"
            onClick={(e) => {
               e.stopPropagation();
-              alert("REDIRECTING TO SECURE LOGIN TERMINAL...");
+              onLogin();
            }}
          >
            PROCEED TO LOGIN
@@ -568,10 +570,12 @@ function Moon({ data }: { data: MoonData }) {
 
 function CameraController({ 
   selectedPlanet, 
-  planetRefs 
+  planetRefs,
+  isZoomingIn
 }: { 
   selectedPlanet: PlanetData | null, 
-  planetRefs: React.MutableRefObject<{[key: string]: THREE.Group}> 
+  planetRefs: React.MutableRefObject<{[key: string]: THREE.Group}>,
+  isZoomingIn: boolean
 }) {
   const { camera, controls } = useThree();
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -598,6 +602,22 @@ function CameraController({
       // 1. Always update the OrbitControls target to focus on the planet
       if (orbitControls) {
         orbitControls.target.lerp(targetPos, 0.1);
+      }
+
+      // If zooming in for login, we override everything else
+      if (isZoomingIn) {
+         // Get very close to the surface.
+         // Assuming unit sphere mesh at 0,0,0 relative to parent group.
+         // We want camera to move towards the planet center but stop right in front.
+         const dist = selectedPlanet.size * 1.5; 
+         const offset = new THREE.Vector3(0, 0, dist); 
+         // Adjust offset based on current camera angle if we wanted, 
+         // but a fixed offset is cleaner for "entering" effect.
+         
+         const desiredCamPos = targetPos.clone().add(offset);
+         state.camera.position.lerp(desiredCamPos, 0.04);
+         
+         return; // Skip other logic
       }
 
       // 2. Only force camera position during transition
@@ -759,6 +779,8 @@ function ActionButton({ icon: Icon, onClick, type = "neutral" }: { icon: any, on
 export default function SolarSystem() {
   const [selectedPlanet, setSelectedPlanet] = useState<PlanetData | null>(null);
   const [loginVisible, setLoginVisible] = useState(false);
+  const [showParallax, setShowParallax] = useState(false);
+  const [isZoomingIn, setIsZoomingIn] = useState(false);
   const planetRefs = useRef<{[key: string]: THREE.Group}>({});
 
   // Font and Styles import
@@ -810,131 +832,159 @@ export default function SolarSystem() {
     planetRefs.current[name] = obj;
   };
 
+  const handleLogin = () => {
+     setIsZoomingIn(true);
+     setLoginVisible(false); // Hide the card during zoom
+     // Wait for zoom animation
+     setTimeout(() => {
+        setShowParallax(true);
+     }, 1500);
+  };
+
+  const handleBack = () => {
+    setShowParallax(false);
+    setIsZoomingIn(false);
+    setLoginVisible(true);
+  };
+
   return (
     <div className="w-full h-screen bg-[#000814] relative font-['Orbitron',_sans-serif] overflow-hidden">
-      <Canvas
-        shadows
-        camera={{ position: [0, 10, 45], fov: 45 }}
-        gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, outputColorSpace: THREE.SRGBColorSpace }}
-      >
-        <UniverseBackground onBackgroundClick={() => setSelectedPlanet(null)} />
-        <ambientLight intensity={0.1} />
-        <Sun />
-        
-        {PLANETS.map((planet, i) => (
-          <Planet 
-            key={i} 
-            data={planet} 
-            onPlanetSelect={setSelectedPlanet}
-            setRef={handleSetRef}
-            isSelected={selectedPlanet?.name === planet.name}
-            setLoginVisible={setLoginVisible}
+      
+      {/* Solar System Layer */}
+      <div className={`absolute inset-0 transition-opacity duration-1000 ${showParallax ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+        <Canvas
+          shadows
+          camera={{ position: [0, 10, 45], fov: 45 }}
+          gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, outputColorSpace: THREE.SRGBColorSpace }}
+        >
+          <UniverseBackground onBackgroundClick={() => setSelectedPlanet(null)} />
+          <ambientLight intensity={0.1} />
+          <Sun />
+          
+          {PLANETS.map((planet, i) => (
+            <Planet 
+              key={i} 
+              data={planet} 
+              onPlanetSelect={setSelectedPlanet}
+              setRef={handleSetRef}
+              isSelected={selectedPlanet?.name === planet.name}
+              setLoginVisible={setLoginVisible}
+            />
+          ))}
+
+          <CameraController selectedPlanet={selectedPlanet} planetRefs={planetRefs} isZoomingIn={isZoomingIn} />
+
+          <OrbitControls 
+              makeDefault
+              enablePan={true} 
+              enableZoom={!isZoomingIn} 
+              minDistance={5} 
+              maxDistance={350}
+              maxPolarAngle={Math.PI / 1.5}
           />
-        ))}
 
-        <CameraController selectedPlanet={selectedPlanet} planetRefs={planetRefs} />
+          <EffectComposer>
+            <Bloom 
+              luminanceThreshold={0.05} 
+              mipmapBlur 
+              intensity={2.0} 
+              radius={0.7} 
+            />
+            <Glitch 
+              delay={new THREE.Vector2(5.0, 10.0)} // min and max delay between glitches
+              duration={new THREE.Vector2(0.3, 0.6)} // min and max duration of a glitch
+              strength={new THREE.Vector2(0.3, 0.8)} // min and max strength
+              mode={1} // GlitchMode.SPORADIC
+              active // turn on/off the effect (switches between "mode" prop and GlitchMode.DISABLED)
+              ratio={0.85} // Threshold for strong glitches
+            />
+          </EffectComposer>
+        </Canvas>
+      
+        {/* Cyberpunk HUD Overlay */}
+        <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-8 md:p-12 overflow-hidden">
+          {/* Header Section */}
+          <div className="flex justify-between items-start">
+            <div className="flex flex-col gap-6">
+               {/* Pill */}
+               <div className="pointer-events-auto w-fit bg-black/20 backdrop-blur-md border border-pink-500/30 px-6 py-2 rounded-full flex items-center gap-3 hover:bg-black/40 transition-colors">
+                 <div className="w-2 h-2 rounded-full bg-gradient-to-r from-cyan-500 to-pink-500 animate-pulse shadow-[0_0_10px_#ec4899]"></div>
+                 <span className="text-xs text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-pink-400 font-mono tracking-[0.2em] font-bold">STATUS: ONLINE</span>
+               </div>
 
-        <OrbitControls 
-            makeDefault
-            enablePan={true} 
-            enableZoom={true} 
-            minDistance={5} 
-            maxDistance={350}
-            maxPolarAngle={Math.PI / 1.5}
-        />
+               {/* Main Title */}
+               <GlitchText 
+                 text="COSMIC" 
+                 className="text-[10vw] font-black text-white leading-none tracking-tighter font-['Orbitron'] drop-shadow-[0_0_30px_rgba(236,72,153,0.3)] mix-blend-overlay opacity-90"
+                 color1="text-pink-500"
+                 color2="text-cyan-500"
+               />
 
-        <EffectComposer>
-          <Bloom 
-            luminanceThreshold={0.05} 
-            mipmapBlur 
-            intensity={2.0} 
-            radius={0.7} 
-          />
-          <Glitch 
-            delay={new THREE.Vector2(5.0, 10.0)} // min and max delay between glitches
-            duration={new THREE.Vector2(0.3, 0.6)} // min and max duration of a glitch
-            strength={new THREE.Vector2(0.3, 0.8)} // min and max strength
-            mode={1} // GlitchMode.SPORADIC
-            active // turn on/off the effect (switches between "mode" prop and GlitchMode.DISABLED)
-            ratio={0.85} // Threshold for strong glitches
-          />
-        </EffectComposer>
-      </Canvas>
+               {/* Subtitle & CTA */}
+               <div className="max-w-md pl-2">
+                 <p className="text-cyan-100 font-mono text-sm md:text-base leading-relaxed mb-8 tracking-widest border-l-2 border-transparent border-image-slice-1 pl-4 backdrop-blur-sm relative">
+                   <span className="absolute left-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-cyan-500 to-pink-500"></span>
+                   ENTER THE INTERGALACTIC LAYER. <br/>
+                   UNLEASH THE LOVE ECONOMY.
+                 </p>
+               </div>
+            </div>
 
-      {/* Cyberpunk HUD Overlay */}
-      <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-8 md:p-12 overflow-hidden">
-        {/* Header Section */}
-        <div className="flex justify-between items-start">
-          <div className="flex flex-col gap-6">
-             {/* Pill */}
-             <div className="pointer-events-auto w-fit bg-black/20 backdrop-blur-md border border-pink-500/30 px-6 py-2 rounded-full flex items-center gap-3 hover:bg-black/40 transition-colors">
-               <div className="w-2 h-2 rounded-full bg-gradient-to-r from-cyan-500 to-pink-500 animate-pulse shadow-[0_0_10px_#ec4899]"></div>
-               <span className="text-xs text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-pink-400 font-mono tracking-[0.2em] font-bold">STATUS: ONLINE</span>
-             </div>
-
-             {/* Main Title */}
-             <GlitchText 
-               text="COSMIC" 
-               className="text-[10vw] font-black text-white leading-none tracking-tighter font-['Orbitron'] drop-shadow-[0_0_30px_rgba(236,72,153,0.3)] mix-blend-overlay opacity-90"
-               color1="text-pink-500"
-               color2="text-cyan-500"
-             />
-
-             {/* Subtitle & CTA */}
-             <div className="max-w-md pl-2">
-               <p className="text-cyan-100 font-mono text-sm md:text-base leading-relaxed mb-8 tracking-widest border-l-2 border-transparent border-image-slice-1 pl-4 backdrop-blur-sm relative">
-                 <span className="absolute left-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-cyan-500 to-pink-500"></span>
-                 ENTER THE INTERGALACTIC LAYER. <br/>
-                 UNLEASH THE LOVE ECONOMY.
-               </p>
-             </div>
+            {/* Top Right Stats */}
+            <div className="flex flex-col items-end pt-2">
+               <div className="flex gap-1 mb-2">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className={`w-2 h-6 ${i < 3 ? 'bg-gradient-to-t from-cyan-500 to-pink-500' : 'bg-white/10'} skew-x-12`}></div>
+                  ))}
+               </div>
+               <div className="text-xs text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-pink-400 font-mono tracking-widest font-bold">SIGNAL_V.0.9</div>
+            </div>
           </div>
 
-          {/* Top Right Stats */}
-          <div className="flex flex-col items-end pt-2">
-             <div className="flex gap-1 mb-2">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className={`w-2 h-6 ${i < 3 ? 'bg-gradient-to-t from-cyan-500 to-pink-500' : 'bg-white/10'} skew-x-12`}></div>
-                ))}
+          {/* Footer Section */}
+          <div className="flex justify-between items-end">
+             {/* Bottom Left Coords */}
+             <div className="relative mb-4 ml-2">
+               <div className="flex gap-8 text-white/50 font-mono text-xs backdrop-blur-sm p-4 rounded border border-white/5 bg-black/20">
+                  <div className="flex flex-col">
+                     <span className="text-pink-500 text-[20px] mb-1 font-bold tracking-widest">POS_X</span>
+                     <RandomCharacters length={6} className="text-[20px] text-white/80 leading-none" />
+                  </div>
+                  <div className="flex flex-col">
+                     <span className="text-cyan-500 text-[20px] mb-1 font-bold tracking-widest">POS_Y</span>
+                     <RandomCharacters length={6} className="text-[20px] text-white/80 leading-none" />
+                  </div>
+               </div>
              </div>
-             <div className="text-xs text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-pink-400 font-mono tracking-widest font-bold">SIGNAL_V.0.9</div>
+
+             {/* Bottom Right Title */}
+             <div>
+               <GlitchText 
+                 text="MATCH"
+                 className="text-[10vw] font-black text-white leading-none tracking-tighter font-['Orbitron'] text-right drop-shadow-[0_0_30px_rgba(6,182,212,0.3)] mix-blend-overlay opacity-90"
+                 color1="text-cyan-500"
+                 color2="text-pink-500"
+               />
+             </div>
           </div>
         </div>
 
-        {/* Footer Section */}
-        <div className="flex justify-between items-end">
-           {/* Bottom Left Coords */}
-           <div className="relative mb-4 ml-2">
-             <div className="flex gap-8 text-white/50 font-mono text-xs backdrop-blur-sm p-4 rounded border border-white/5 bg-black/20">
-                <div className="flex flex-col">
-                   <span className="text-pink-500 text-[20px] mb-1 font-bold tracking-widest">POS_X</span>
-                   <RandomCharacters length={6} className="text-[20px] text-white/80 leading-none" />
-                </div>
-                <div className="flex flex-col">
-                   <span className="text-cyan-500 text-[20px] mb-1 font-bold tracking-widest">POS_Y</span>
-                   <RandomCharacters length={6} className="text-[20px] text-white/80 leading-none" />
-                </div>
-             </div>
-           </div>
-
-           {/* Bottom Right Title */}
-           <div>
-             <GlitchText 
-               text="MATCH"
-               className="text-[10vw] font-black text-white leading-none tracking-tighter font-['Orbitron'] text-right drop-shadow-[0_0_30px_rgba(6,182,212,0.3)] mix-blend-overlay opacity-90"
-               color1="text-cyan-500"
-               color2="text-pink-500"
-             />
-           </div>
-        </div>
+        {/* Cyberpunk Card Overlay */}
+        {selectedPlanet && loginVisible && !isZoomingIn && (
+          <div className="absolute right-8 md:right-16 top-1/2 -translate-y-1/2 z-20">
+            <LoginCard 
+              className="w-[350px] md:w-[400px] animate-in fade-in slide-in-from-right-20 duration-500" 
+              onLogin={handleLogin}
+            />
+          </div>
+        )}
       </div>
 
-      {/* Cyberpunk Card Overlay */}
-      {selectedPlanet && loginVisible && (
-        <div className="absolute right-8 md:right-16 top-1/2 -translate-y-1/2 z-20">
-          <LoginCard className="w-[350px] md:w-[400px] animate-in fade-in slide-in-from-right-20 duration-500" />
-        </div>
-      )}
+      {/* Parallax Layer - Always mounted to preload assets, hidden until active */}
+      <div className={`absolute inset-0 z-50 transition-opacity duration-1000 ${showParallax ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+           <ParallaxLogin onBack={handleBack} isActive={showParallax} />
+      </div>
+
     </div>
   );
 }
