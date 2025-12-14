@@ -1,7 +1,12 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ChevronRight, Check } from "lucide-react";
+import { ArrowLeft, Check } from "lucide-react";
+import IconButton from "./IconButton";
+import Loader from "./loader/Loader";
+import { useCyberToast } from "@/components/toast";
+import { sendOnboardingToWebhook } from "@/lib/api/onboarding";
+import { useRouter } from "next/navigation";
 import * as THREE from "three";
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
@@ -18,11 +23,151 @@ const CONFIG = {
 };
 
 const FORM_STEPS = [
-    { id: 'codename', label: 'CODENAME', type: 'text', placeholder: 'ENTER ALIAS' },
-    { id: 'access_key', label: 'ACCESS_KEY', type: 'password', placeholder: '••••••••' },
-    { id: 'neural_link', label: 'NEURAL_LINK', type: 'email', placeholder: 'USER@NET.IO' },
-    { id: 'sector', label: 'SECTOR_ID', type: 'text', placeholder: 'SEC-09' },
-    { id: 'origin', label: 'ORIGIN', type: 'text', placeholder: 'SYSTEM_ROOT' }
+    {
+        id: "callsign",
+        label: "CALLSIGN",
+        type: "text",
+        placeholder: "ENTER ALIAS",
+        hint: "Your handle in the neon mesh",
+        pattern: /^.{3,}$/,
+        errorMsg: "MIN LENGTH: 3 CHARS",
+    },
+    {
+        id: "access_code",
+        label: "ACCESS_CODE",
+        type: "password",
+        placeholder: "••••••••",
+        hint: "Encrypted keyphrase (min 4 chars)",
+        pattern: /^.{4,}$/,
+        errorMsg: "SECURE CODE TOO SHORT",
+    },
+    {
+        id: "quantum_mail",
+        label: "QUANTUM_MAIL",
+        type: "email",
+        placeholder: "USER@VOID.NET",
+        hint: "Uplink address (UPPERCASE PROTOCOL)",
+        pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/i,
+        errorMsg: "INVALID NETWORK SYNTAX",
+    },
+    {
+        id: "home_sector",
+        label: "HOME_SECTOR",
+        type: "select",
+        placeholder: "SELECT SECTOR",
+        hint: "Pick your grid coordinate",
+        options: [
+            "SECTOR-7G",
+            "NEON DOCKS",
+            "KOWLOON NODE",
+            "ORBITAL HAB-12",
+            "DUST RING OUTPOST",
+            "SYNTH CITY CORE",
+        ],
+        errorMsg: "SECTOR REQUIRED",
+    },
+    {
+        id: "species_origin",
+        label: "SPECIES_ORIGIN",
+        type: "select",
+        placeholder: "SELECT ORIGIN",
+        hint: "Your manufacture / birth cluster",
+        options: [
+            "TERRA_PRIME",
+            "MARS COLONY",
+            "LUNAR ARC",
+            "EUROPA VAULTS",
+            "SYNTH FORGE",
+            "UNKNOWN SIGNAL",
+        ],
+        errorMsg: "ORIGIN REQUIRED",
+    },
+    {
+        id: "skills",
+        label: "SKILLS",
+        type: "multi-select",
+        placeholder: "SELECT MODULES",
+        hint: "Install your core modules (multi-select)",
+        options: [
+            "NETRUNNING",
+            "MECH-ENGINEERING",
+            "BIOHACKING",
+            "COMBAT SIMS",
+            "DIPLOMACY",
+            "ASTRO-NAV",
+        ],
+        errorMsg: "SELECT AT LEAST 1 SKILL",
+    },
+    {
+        id: "vibes",
+        label: "VIBES",
+        type: "multi-select",
+        placeholder: "SELECT AURA",
+        hint: "Signal your baseline aura (multi-select)",
+        options: ["EDGY", "REBEL", "COLD", "CHAOTIC", "ZEN", "NEON ROMANTIC"],
+        errorMsg: "SELECT AT LEAST 1 VIBE",
+    },
+    {
+        id: "love_mood",
+        label: "LOVE_MOOD",
+        type: "multi-select",
+        placeholder: "SELECT MOOD",
+        hint: "Current heart firmware (multi-select)",
+        options: ["CURIOUS", "DOMINANT", "STRATEGIC", "DETACHED", "PLAYFUL", "OBSESSED"],
+        errorMsg: "SELECT AT LEAST 1 MOOD",
+    },
+    {
+        id: "looking_for",
+        label: "LOOKING_FOR",
+        type: "multi-select",
+        placeholder: "SELECT TARGET",
+        hint: "Define the mission objective (multi-select)",
+        options: [
+            "CREW MEMBER",
+            "PARTNER IN CRIME",
+            "TEMP ALLIANCE",
+            "LONG-HAUL CO-PILOT",
+            "NEON DATE",
+            "COFFEE IN THE VOID",
+        ],
+        errorMsg: "SELECT AT LEAST 1 OBJECTIVE",
+    },
+    {
+        id: "age",
+        label: "AGE",
+        type: "number",
+        placeholder: "25",
+        hint: "Temporal signature (18+)",
+        pattern: /^(?:1[89]|[2-9]\d)$/,
+        errorMsg: "INVALID AGE",
+    },
+    {
+        id: "height_cm",
+        label: "HEIGHT_CM",
+        type: "number",
+        placeholder: "175",
+        hint: "Chassis height in centimeters",
+        pattern: /^(?:1[2-9]\d|2[0-4]\d|250)$/,
+        errorMsg: "INVALID HEIGHT",
+    },
+    {
+        id: "short_bio",
+        label: "SHORT_BIO",
+        type: "textarea",
+        placeholder: "TRANSMIT A SHORT SIGNAL...",
+        hint: "One line. No noise. Pure intent.",
+        pattern: /^.{10,}$/,
+        errorMsg: "BIO TOO SHORT (MIN 10 CHARS)",
+    },
+    {
+        id: "avatar_select",
+        label: "AVATAR_SELECT",
+        type: "image-select",
+        placeholder: "SELECT AVATAR",
+        hint: "Choose your visual representation",
+        options: ["/assets/images/wlop1.jpg", "/assets/images/wlop2.jpg", "/assets/images/wlop3.jpg", "/assets/images/wlop4.jpg"],
+        errorMsg: "AVATAR SELECTION REQUIRED",
+    },
 ];
 
 const CAMERA_WAYPOINTS = [
@@ -31,38 +176,112 @@ const CAMERA_WAYPOINTS = [
     { pos: new THREE.Vector3(-4, 1.5, 2), look: new THREE.Vector3(2, 1, -10) },  // Step 2: Left Alley
     { pos: new THREE.Vector3(4, 3, -6), look: new THREE.Vector3(-2, 0, -15) },   // Step 3: Right High
     { pos: new THREE.Vector3(0, 6, -2), look: new THREE.Vector3(0, 2, -20) },    // Step 4: Inside City (Safe Mid-Level)
-    { pos: new THREE.Vector3(20, 25, 10), look: new THREE.Vector3(0, -5, -10) },  // Step 5: Isometric View
+    { pos: new THREE.Vector3(0, 15, -10), look: new THREE.Vector3(0, 0, -10) },   // Step 5: Avatar Selection (New)
+    { pos: new THREE.Vector3(20, 25, 10), look: new THREE.Vector3(0, -5, -10) },  // Step 6: Isometric View
 ];
 
 export default function ParallaxLogin({ onBack, isActive = true }: { onBack?: () => void, isActive?: boolean }) {
     const containerRef = useRef<HTMLDivElement>(null);
     const [loading, setLoading] = useState(true);
     const activeRef = useRef(isActive);
+    const [minDelayDone, setMinDelayDone] = useState(false);
+    const cyberToast = useCyberToast();
+    const router = useRouter();
     
     // Form State
     const [currentStep, setCurrentStep] = useState(0);
-    const [formData, setFormData] = useState<Record<string, string>>({});
+    const [formData, setFormData] = useState<Record<string, any>>({});
     const [inputValue, setInputValue] = useState("");
+    const [multiValue, setMultiValue] = useState<string[]>([]);
+    const [error, setError] = useState<string | null>(null);
     const stepRef = useRef(0); // Sync for Three.js loop
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Keep activeRef in sync with prop for use inside the animation loop
     useEffect(() => {
         activeRef.current = isActive;
     }, [isActive]);
 
-    const handleNext = () => {
-        if (!inputValue) return; // Basic validation
+    // Enforce a minimum 4s "boot" simulation whenever this screen becomes active.
+    useEffect(() => {
+        if (!isActive) {
+            setMinDelayDone(false);
+            return;
+        }
+
+        setMinDelayDone(false);
+        const t = window.setTimeout(() => setMinDelayDone(true), 4000);
+        return () => window.clearTimeout(t);
+    }, [isActive]);
+
+    const handleNext = async () => {
+        if (isSubmitting) return;
+        const currentStepConfig = FORM_STEPS[currentStep];
         
-        setFormData(prev => ({ ...prev, [FORM_STEPS[currentStep].id]: inputValue }));
-        setInputValue("");
+        // Resolve current step value based on type
+        const stepType = currentStepConfig.type;
+        const value =
+            stepType === "multi-select"
+                ? multiValue
+                : inputValue;
+
+        const isEmpty =
+            stepType === "multi-select"
+                ? (multiValue?.length ?? 0) === 0
+                : !inputValue;
+
+        if (isEmpty) {
+            setError(
+                stepType === "image-select"
+                    ? "SELECTION REQUIRED"
+                    : stepType === "multi-select"
+                    ? "SELECT AT LEAST 1"
+                    : "INPUT REQUIRED"
+            );
+            return;
+        }
         
+        // Validate single-value steps with pattern (if provided)
+        if (stepType !== "multi-select" && currentStepConfig.pattern && !currentStepConfig.pattern.test(inputValue)) {
+             setError(currentStepConfig.errorMsg);
+             return;
+        }
+
+        setError(null);
+
         const nextStep = currentStep + 1;
+        const isLastStep = nextStep === FORM_STEPS.length;
+
+        // Build the final payload (includes the value for this step)
+        const finalPayload = { ...formData, [FORM_STEPS[currentStep].id]: value };
+
+        if (isLastStep) {
+            setIsSubmitting(true);
+            cyberToast.show("UPLINKING CREDENTIALS...", "info");
+
+            try {
+                await sendOnboardingToWebhook(finalPayload);
+                cyberToast.show("DATASTREAM SYNCED", "success");
+            } catch (e) {
+                const msg = e instanceof Error ? e.message : "WEBHOOK FAILED";
+                cyberToast.show(`CRITICAL FAILURE: ${msg}`, "error");
+                setIsSubmitting(false);
+                return; // stay on this step
+            }
+
+            setIsSubmitting(false);
+        }
+
+        setFormData(finalPayload);
+        setInputValue("");
+        setMultiValue([]);
+
         setCurrentStep(nextStep);
         stepRef.current = nextStep;
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter') handleNext();
+        if (e.key === 'Enter') void handleNext();
     };
 
     useEffect(() => {
@@ -416,18 +635,16 @@ export default function ParallaxLogin({ onBack, isActive = true }: { onBack?: ()
         };
     }, []);
 
+    const showLoader = isActive && (!minDelayDone || loading);
+
     return (
         <div className="absolute inset-0 z-50 bg-[#050510] text-white font-mono">
-            {loading && (
-                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 animate-pulse text-black">
-                    <div className="w-8 h-8 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
-                 </div>
-            )}
+            {showLoader && <Loader warningText="CAUTION, DO NOT TURN OFF." />}
             
             <div ref={containerRef} className="absolute inset-0 z-0" />
 
             {/* Only render UI when active to prevent blocking interactions in SolarSystem */}
-            <div className={`absolute inset-0 z-10 pointer-events-none ${isActive ? '' : 'hidden'}`}>
+            <div className={`absolute inset-0 z-10 pointer-events-none ${isActive && !showLoader ? '' : 'hidden'}`}>
                  {/* Back Button */}
                  <div className="absolute bottom-10 left-10 pointer-events-auto">
                      {onBack && (
@@ -452,59 +669,241 @@ export default function ParallaxLogin({ onBack, isActive = true }: { onBack?: ()
                                     animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
                                     exit={{ opacity: 0, x: -50, filter: "blur(10px)" }}
                                     transition={{ duration: 0.4, ease: "easeOut" }}
-                                    className="bg-black/60 backdrop-blur-md border border-white/10 p-8 relative overflow-hidden"
-                                    style={{
-                                        clipPath: "polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px)"
-                                    }}
+                                    className="bg-[#0a0a0f]/60 backdrop-blur-xl p-8 relative overflow-visible w-full max-w-lg mx-auto"
                                 >
-                                    {/* Corner Accents */}
-                                    <div className="absolute top-0 left-0 w-4 h-4 border-l-2 border-t-2 border-cyan-500"></div>
-                                    <div className="absolute bottom-0 right-0 w-4 h-4 border-r-2 border-b-2 border-pink-500"></div>
+                                    <div className="absolute inset-0 pointer-events-none z-0">
+                                         <svg className="w-full h-full overflow-visible">
+                                            <rect
+                                                x="0" y="0" width="100%" height="100%"
+                                                fill="none"
+                                                strokeWidth="3"
+                                                pathLength="100"
+                                                strokeDasharray="2 98"
+                                                strokeLinecap="round"
+                                                className="animate-border-rotate opacity-80"
+                                            />
+                                         </svg>
+                                    </div>
+
+                                    {/* Broken Borders / Tech Frame */}
+                                    <div className="absolute top-0 left-0 w-8 h-[2px] bg-cyan-500" />
+                                    <div className="absolute top-0 left-0 w-[2px] h-8 bg-cyan-500" />
                                     
-                                    <div className="mb-2 flex justify-between items-end">
-                                        <label className="text-cyan-400 font-mono text-sm tracking-[0.2em] font-bold">
+                                    <div className="absolute top-0 right-0 w-8 h-[2px] bg-cyan-500" />
+                                    <div className="absolute top-0 right-0 w-[2px] h-8 bg-cyan-500" />
+
+                                    <div className="absolute bottom-0 left-0 w-8 h-[2px] bg-pink-500" />
+                                    <div className="absolute bottom-0 left-0 w-[2px] h-8 bg-pink-500" />
+                                    
+                                    <div className="absolute bottom-0 right-0 w-8 h-[2px] bg-pink-500" />
+                                    <div className="absolute bottom-0 right-0 w-[2px] h-8 bg-pink-500" />
+
+                                    {/* Decorative broken lines */}
+                                    <div className="absolute top-0 left-1/4 w-16 h-[1px] bg-white/20" />
+                                    <div className="absolute bottom-0 right-1/4 w-16 h-[1px] bg-white/20" />
+                                    
+                                    {/* Header */}
+                                    <div className="flex justify-between items-start mb-8 border-b border-white/10 pb-4">
+                                        <div>
+                                            <h2 className="text-xl font-bold text-white tracking-[0.2em] glitch-text" data-text="IASTROMATCH"> 
+                                                 IASTROMATCH
+                                            </h2>
+                                            <p className="text-[10px] text-cyan-500/70 font-mono mt-1 tracking-wider">
+                                                INITIALIZING LOVE PROTOCOLS
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                             <span className="text-2xl font-bold text-white/90 font-mono">
+                                                {String(currentStep + 1).padStart(2, "0")}
+                                            </span>
+                                            <span className="text-white/30 text-xs font-mono ml-1">
+                                                / {String(FORM_STEPS.length).padStart(2, "0")}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Input Area */}
+                                    <div className="mb-2">
+                                        <label className="block text-cyan-400 font-mono text-sm tracking-[0.2em] font-bold mb-2">
                                             {FORM_STEPS[currentStep].label}
                                         </label>
-                                        <span className="text-white/30 text-xs font-mono">
-                                            {currentStep + 1} / {FORM_STEPS.length}
-                                        </span>
+                                        
+                                        <div className="relative group mb-6">
+                                            {FORM_STEPS[currentStep].type === 'image-select' ? (
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    {FORM_STEPS[currentStep].options?.map((imgSrc, idx) => (
+                                                        <button
+                                                            key={idx}
+                                                            onClick={() => {
+                                                                setInputValue(imgSrc);
+                                                                if (error) setError(null);
+                                                            }}
+                                                            className={`relative group/img overflow-hidden border-2 transition-all duration-300 ${
+                                                                inputValue === imgSrc 
+                                                                    ? 'border-cyan-500 shadow-[0_0_20px_rgba(6,182,212,0.5)] scale-105' 
+                                                                    : 'border-white/10 hover:border-white/50 hover:scale-105'
+                                                            }`}
+                                                        >
+                                                            <div className="aspect-square relative">
+                                                                <img 
+                                                                    src={imgSrc} 
+                                                                    alt={`Avatar ${idx + 1}`}
+                                                                    className="w-full h-full object-cover" 
+                                                                />
+                                                                {/* Overlay Effect */}
+                                                                <div className={`absolute inset-0 bg-cyan-500/20 mix-blend-overlay transition-opacity ${inputValue === imgSrc ? 'opacity-100' : 'opacity-0 group-hover/img:opacity-100'}`} />
+                                                                
+                                                                {/* Selection Check */}
+                                                                {inputValue === imgSrc && (
+                                                                    <div className="absolute top-2 right-2 bg-cyan-500 rounded-full p-1">
+                                                                        <Check size={12} className="text-black" />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            ) : FORM_STEPS[currentStep].type === "select" ? (
+                                                <select
+                                                    value={inputValue}
+                                                    onChange={(e) => {
+                                                        setInputValue(e.target.value);
+                                                        if (error) setError(null);
+                                                    }}
+                                                    className={`w-full bg-black/50 border ${error ? 'border-red-500/50' : 'border-white/10'} text-white font-mono text-base py-4 px-4 focus:outline-none focus:border-cyan-500/50 focus:bg-cyan-950/10 transition-all`}
+                                                >
+                                                    <option value="" disabled>
+                                                        {FORM_STEPS[currentStep].placeholder}
+                                                    </option>
+                                                    {FORM_STEPS[currentStep].options?.map((opt, idx) => (
+                                                        <option key={idx} value={opt}>
+                                                            {opt}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            ) : FORM_STEPS[currentStep].type === "multi-select" ? (
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    {FORM_STEPS[currentStep].options?.map((opt, idx) => {
+                                                        const selected = multiValue.includes(opt);
+                                                        return (
+                                                            <button
+                                                                key={idx}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setMultiValue((prev) =>
+                                                                        prev.includes(opt)
+                                                                            ? prev.filter((x) => x !== opt)
+                                                                            : [...prev, opt]
+                                                                    );
+                                                                    if (error) setError(null);
+                                                                }}
+                                                                className={`border px-3 py-3 text-left font-mono text-xs tracking-widest transition-all ${
+                                                                    selected
+                                                                        ? "border-cyan-500 bg-cyan-500/10 shadow-[0_0_18px_rgba(6,182,212,0.35)]"
+                                                                        : "border-white/10 bg-black/40 hover:border-white/40"
+                                                                }`}
+                                                            >
+                                                                {opt}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ) : FORM_STEPS[currentStep].type === "textarea" ? (
+                                                <textarea
+                                                    value={inputValue}
+                                                    onChange={(e) => {
+                                                        // keep cyber uppercase look for non-email/password; short bio can be uppercase too
+                                                        setInputValue(e.target.value.toUpperCase());
+                                                        if (error) setError(null);
+                                                    }}
+                                                    placeholder={FORM_STEPS[currentStep].placeholder}
+                                                    rows={4}
+                                                    className={`w-full bg-black/50 border ${error ? 'border-red-500/50' : 'border-white/10'} text-white font-mono text-sm py-4 px-4 focus:outline-none focus:border-cyan-500/50 focus:bg-cyan-950/10 transition-all placeholder:text-white/10 uppercase resize-none`}
+                                                />
+                                            ) : (
+                                                <>
+                                                    <input
+                                                        type={FORM_STEPS[currentStep].type}
+                                                        value={inputValue}
+                                                        onChange={(e) => {
+                                                            const t = FORM_STEPS[currentStep].type;
+                                                            // Email must be uppercase. Password stays as typed.
+                                                            const shouldUppercase = t !== "password";
+                                                            setInputValue(shouldUppercase ? e.target.value.toUpperCase() : e.target.value);
+                                                            if (error) setError(null);
+                                                        }}
+                                                        onKeyDown={handleKeyDown}
+                                                        placeholder={FORM_STEPS[currentStep].placeholder}
+                                                        // Ensure email/password are never forced to uppercase visually.
+                                                        className={`w-full bg-black/50 border ${error ? 'border-red-500/50' : 'border-white/10'} text-white font-mono text-xl py-4 px-4 focus:outline-none focus:border-cyan-500/50 focus:bg-cyan-950/10 transition-all placeholder:text-white/10 ${FORM_STEPS[currentStep].type === "password" ? "normal-case" : "uppercase"}`}
+                                                        autoCapitalize={FORM_STEPS[currentStep].type === "email" || FORM_STEPS[currentStep].type === "password" ? "none" : undefined}
+                                                        autoCorrect={FORM_STEPS[currentStep].type === "email" || FORM_STEPS[currentStep].type === "password" ? "off" : undefined}
+                                                        spellCheck={FORM_STEPS[currentStep].type === "email" || FORM_STEPS[currentStep].type === "password" ? false : undefined}
+                                                        autoFocus
+                                                    />
+                                                    
+                                                    {/* Corner accents on input */}
+                                                    <div className={`absolute top-0 left-0 w-2 h-2 border-t border-l ${error ? 'border-red-500' : 'border-white/30 group-focus-within:border-cyan-500'} transition-colors`} />
+                                                    <div className={`absolute bottom-0 right-0 w-2 h-2 border-b border-r ${error ? 'border-red-500' : 'border-white/30 group-focus-within:border-cyan-500'} transition-colors`} />
+                                                </>
+                                            )}
+
+                                            {/* Error Message */}
+                                            <AnimatePresence>
+                                                {error && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, y: -10, x: 20 }}
+                                                        animate={{ opacity: 1, y: 0, x: 0 }}
+                                                        exit={{ opacity: 0, y: -10 }}
+                                                        className="absolute -bottom-6 right-0 text-red-500 text-[10px] font-mono font-bold tracking-wider flex items-center gap-2"
+                                                    >
+                                                        <span className="inline-block w-1.5 h-1.5 bg-red-500 rounded-sm animate-pulse shadow-[0_0_10px_#ef4444]" />
+                                                        {error}
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                        
+                                        <p className="mt-2 text-xs text-white/40 font-mono flex items-center gap-2">
+                                            <span className="inline-block w-1 h-1 bg-cyan-500 rounded-full animate-pulse" />
+                                            {FORM_STEPS[currentStep].hint}
+                                        </p>
                                     </div>
 
-                                    <div className="relative group">
-                                        <input
-                                            type={FORM_STEPS[currentStep].type}
-                                            value={inputValue}
-                                            onChange={(e) => setInputValue(e.target.value)}
-                                            onKeyDown={handleKeyDown}
-                                            placeholder={FORM_STEPS[currentStep].placeholder}
-                                            className="w-full bg-black/50 border-b-2 border-white/20 text-white font-mono text-xl py-3 focus:outline-none focus:border-cyan-500 transition-colors placeholder:text-white/20"
-                                            autoFocus
+                                    {/* Footer / Button */}
+                                    <div className="mt-8">
+                                        <IconButton 
+                                            text="ENGAGE_" 
+                                            onClick={handleNext} 
+                                            disabled={
+                                                isSubmitting ||
+                                                (() => {
+                                                    const t = FORM_STEPS[currentStep].type;
+                                                    if (t === "multi-select") return (multiValue?.length ?? 0) === 0;
+                                                    return !inputValue;
+                                                })()
+                                            }
                                         />
-                                        {/* Input Scanline */}
-                                        <div className="absolute bottom-0 left-0 h-[2px] bg-cyan-500 w-0 group-focus-within:w-full transition-all duration-500"></div>
                                     </div>
-
-                                    <button
-                                        onClick={handleNext}
-                                        disabled={!inputValue}
-                                        className="mt-8 w-full bg-white/5 hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-500/50 text-white font-mono text-sm py-3 flex items-center justify-center gap-2 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        <span>PROCEED</span>
-                                        <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                                    </button>
                                 </motion.div>
                             ) : (
                                 <motion.div
                                     key="success"
                                     initial={{ opacity: 0, scale: 0.9 }}
                                     animate={{ opacity: 1, scale: 1 }}
-                                    className="text-center"
+                                    className="text-center w-full"
                                 >
                                     <div className="inline-flex items-center justify-center w-20 h-20 rounded-full border-2 border-green-500 text-green-500 mb-6 bg-green-500/10 backdrop-blur-sm shadow-[0_0_30px_rgba(34,197,94,0.3)]">
                                         <Check size={40} />
                                     </div>
-                                    <h2 className="text-3xl font-bold text-white font-mono tracking-widest mb-2">ACCESS GRANTED</h2>
-                                    <p className="text-green-400 font-mono text-sm">WELCOME TO THE CITY</p>
+                                    <h2 className="text-3xl font-bold text-white font-mono tracking-widest mb-8">MATCH PROTOCOL ACTIVE</h2>
+                                    
+                                    <IconButton 
+                                        text="WELCOME TO THE GALAXY_" 
+                                        onClick={() => router.push("/")}
+                                        className="cursor-pointer"
+                                        disabled={false}
+                                    />
                                 </motion.div>
                             )}
                         </AnimatePresence>

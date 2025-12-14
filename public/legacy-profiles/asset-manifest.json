@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/legacy-profiles/static/css/main.b52d30a4.css",
+    "main.js": "/legacy-profiles/static/js/main.c676cab9.js",
+    "static/js/27.ef0cb643.chunk.js": "/legacy-profiles/static/js/27.ef0cb643.chunk.js",
+    "index.html": "/legacy-profiles/index.html"
+  },
+  "entrypoints": [
+    "static/css/main.b52d30a4.css",
+    "static/js/main.c676cab9.js"
+  ]
+}
+

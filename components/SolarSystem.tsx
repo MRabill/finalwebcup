@@ -6,8 +6,7 @@ import { OrbitControls, Line, Html } from "@react-three/drei";
 import { EffectComposer, Bloom, Glitch } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { X, Heart, XCircle, Aperture, Activity, Radio, Crosshair } from "lucide-react";
-
-import ParallaxLogin from "./ParallaxLogin";
+import IconButton from "./IconButton";
 
 // --- Data & Configuration ---
 
@@ -254,61 +253,233 @@ function OrbitPath({ radius }: { radius: number }) {
 
 
 function LoginCard({ className = "", onLogin }: { className?: string, onLogin: () => void }) {
+  const [mode, setMode] = useState<"choice" | "signin" | "signup">("choice");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fieldError, setFieldError] = useState<{ field: "email" | "password" | "global"; msg: string } | null>(null);
+
+  const validateSignIn = () => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setFieldError({ field: "email", msg: "EMAIL REQUIRED" });
+      return false;
+    }
+    // Basic email sanity check
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/i.test(trimmedEmail)) {
+      setFieldError({ field: "email", msg: "INVALID NETWORK SYNTAX" });
+      return false;
+    }
+    if (!password) {
+      setFieldError({ field: "password", msg: "PASSWORD REQUIRED" });
+      return false;
+    }
+    if (password.length < 4) {
+      setFieldError({ field: "password", msg: "PASSWORD TOO SHORT" });
+      return false;
+    }
+    setFieldError(null);
+    return true;
+  };
+
+  const submitSignIn = () => {
+    if (!validateSignIn()) return;
+    onLogin();
+  };
+
   return (
-    <div className={`bg-black/90 p-8 rounded-xl relative overflow-hidden group border border-blue-900/50 ${className}`}>
-       {/* Background Grid Pattern */}
-       <div className="absolute inset-0 opacity-20 pointer-events-none" 
-            style={{
-                backgroundImage: `linear-gradient(rgba(0, 240, 255, 0.1) 1px, transparent 1px),
-                                  linear-gradient(90deg, rgba(0, 240, 255, 0.1) 1px, transparent 1px)`,
-                backgroundSize: '20px 20px'
-            }}>
-       </div>
+    <div
+      className={`bg-[#0a0a0f]/60 backdrop-blur-xl p-8 relative overflow-visible w-[350px] md:w-[400px] ${className}`}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Rotating glow dot (same as ParallaxLogin) */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <svg className="w-full h-full overflow-visible">
+          <rect
+            x="0"
+            y="0"
+            width="100%"
+            height="100%"
+            fill="none"
+            strokeWidth="3"
+            pathLength="100"
+            strokeDasharray="2 98"
+            strokeLinecap="round"
+            className="animate-border-rotate opacity-80"
+          />
+        </svg>
+      </div>
 
-       {/* Top Decoration Lines */}
-       <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-           <div className="absolute top-4 left-4 w-16 h-[1px] bg-cyan-500/50"></div>
-           <div className="absolute top-4 right-4 w-16 h-[1px] bg-pink-500/50"></div>
-           <div className="absolute bottom-4 left-4 w-16 h-[1px] bg-cyan-500/50"></div>
-           <div className="absolute bottom-4 right-4 w-16 h-[1px] bg-pink-500/50"></div>
-       </div>
-       
-       {/* LOG IN Header */}
-       <div className="text-center mb-8 relative">
-         <h2 className="text-6xl font-bold font-mono tracking-wider text-transparent"
-             style={{
-               WebkitTextStroke: '2px #ff00ff',
-               textShadow: '0 0 10px rgba(255, 0, 255, 0.5), 0 0 20px rgba(255, 0, 255, 0.3)'
-             }}
-         >
-           LOG IN
-         </h2>
-         <div className="h-[2px] w-24 bg-pink-500 mx-auto mt-2 shadow-[0_0_10px_#ff00ff]"></div>
-       </div>
-       
-       <div className="space-y-6 relative z-10">
-         <p className="text-cyan-300 text-center font-mono text-sm tracking-wider leading-relaxed">
-           ACCESS TO THIS PLANETARY DATA IS RESTRICTED.
-           <br />
-           PLEASE AUTHENTICATE TO CONTINUE.
-         </p>
-         
-         {/* Login Button */}
-         <button 
-           className="w-full mt-4 bg-transparent border-2 border-pink-500 rounded-full py-3 text-pink-500 text-xl font-bold tracking-widest hover:bg-pink-500 hover:text-white transition-all duration-300 shadow-[0_0_15px_rgba(255,0,255,0.3)] hover:shadow-[0_0_30px_rgba(255,0,255,0.6)] font-mono uppercase"
-           onClick={(e) => {
-              e.stopPropagation();
-              onLogin();
-           }}
-         >
-           PROCEED TO LOGIN
-         </button>
-       </div>
+      {/* Broken Borders / Tech Frame */}
+      <div className="absolute top-0 left-0 w-8 h-[2px] bg-cyan-500" />
+      <div className="absolute top-0 left-0 w-[2px] h-8 bg-cyan-500" />
+      <div className="absolute top-0 right-0 w-8 h-[2px] bg-cyan-500" />
+      <div className="absolute top-0 right-0 w-[2px] h-8 bg-cyan-500" />
+      <div className="absolute bottom-0 left-0 w-8 h-[2px] bg-pink-500" />
+      <div className="absolute bottom-0 left-0 w-[2px] h-8 bg-pink-500" />
+      <div className="absolute bottom-0 right-0 w-8 h-[2px] bg-pink-500" />
+      <div className="absolute bottom-0 right-0 w-[2px] h-8 bg-pink-500" />
 
-       {/* Decorative Circles */}
-       <div className="absolute bottom-4 right-4 w-12 h-12 rounded-full border border-pink-500/30 flex items-center justify-center">
-          <div className="w-6 h-6 rounded-full border border-cyan-500/30"></div>
-       </div>
+      {/* Decorative broken lines */}
+      <div className="absolute top-0 left-1/4 w-16 h-[1px] bg-white/20" />
+      <div className="absolute bottom-0 right-1/4 w-16 h-[1px] bg-white/20" />
+
+      {/* Header (match ParallaxLogin vibe) */}
+      <div className="flex justify-between items-start mb-8 border-b border-white/10 pb-4 relative z-10">
+        <div>
+          <h2 className="text-xl font-bold text-white tracking-[0.2em]">
+            IASTROMATCH
+          </h2>
+          <p className="text-[10px] text-cyan-500/70 font-mono mt-1 tracking-wider">
+            AUTH REQUIRED // ROUTE: ONBOARDING
+          </p>
+        </div>
+        <div className="text-right">
+          <span className="text-xs text-white/30 font-mono tracking-widest">
+            ACCESS_V0.9
+          </span>
+        </div>
+      </div>
+
+      <div className="space-y-6 relative z-10">
+        {mode === "choice" && (
+          <>
+            <p className="text-white/50 font-mono text-sm tracking-widest leading-relaxed">
+              YOU’RE ABOUT TO ENTER THE INTERGALACTIC TINDER LAYER.
+              <br />
+              CHOOSE YOUR ENTRY PROTOCOL.
+            </p>
+
+            <div className="flex flex-col gap-3 pt-2">
+              <IconButton
+                text="SIGN IN_"
+                onClick={() => {
+                  setMode("signin");
+                  setFieldError(null);
+                }}
+              />
+              <IconButton
+                text="SIGN UP_"
+                onClick={() => {
+                  // For now, route to onboarding (signup flow can be built there)
+                  setMode("signup");
+                  onLogin();
+                }}
+              />
+            </div>
+          </>
+        )}
+
+        {mode === "signin" && (
+          <>
+            <p className="text-white/50 font-mono text-sm tracking-widest leading-relaxed">
+              SIGN IN TO SYNC YOUR MATCH DATASTREAM.
+            </p>
+
+            {/* Email */}
+            <div className="relative">
+              <label className="block text-cyan-400 font-mono text-xs tracking-[0.2em] font-bold mb-2">
+                QUANTUM_MAIL
+              </label>
+              <div className="relative group">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (fieldError?.field === "email") setFieldError(null);
+                  }}
+                  placeholder="USER@VOID.NET"
+                  className={`w-full bg-black/50 border ${
+                    fieldError?.field === "email" ? "border-red-500/50" : "border-white/10"
+                  } text-white font-mono text-lg py-3 px-4 focus:outline-none focus:border-cyan-500/50 focus:bg-cyan-950/10 transition-all placeholder:text-white/10`}
+                  autoFocus
+                />
+                <div
+                  className={`absolute top-0 left-0 w-2 h-2 border-t border-l ${
+                    fieldError?.field === "email"
+                      ? "border-red-500"
+                      : "border-white/30 group-focus-within:border-cyan-500"
+                  } transition-colors`}
+                />
+                <div
+                  className={`absolute bottom-0 right-0 w-2 h-2 border-b border-r ${
+                    fieldError?.field === "email"
+                      ? "border-red-500"
+                      : "border-white/30 group-focus-within:border-cyan-500"
+                  } transition-colors`}
+                />
+
+                <div
+                  className={`absolute -bottom-6 right-0 text-red-500 text-[10px] font-mono font-bold tracking-wider flex items-center gap-2 transition-all duration-200 ${
+                    fieldError?.field === "email" ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1 pointer-events-none"
+                  }`}
+                >
+                  <span className="inline-block w-1.5 h-1.5 bg-red-500 rounded-sm animate-pulse shadow-[0_0_10px_#ef4444]" />
+                  {fieldError?.field === "email" ? fieldError.msg : ""}
+                </div>
+              </div>
+            </div>
+
+            {/* Password */}
+            <div className="relative">
+              <label className="block text-cyan-400 font-mono text-xs tracking-[0.2em] font-bold mb-2">
+                ACCESS_CODE
+              </label>
+              <div className="relative group">
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (fieldError?.field === "password") setFieldError(null);
+                  }}
+                  placeholder="••••••••"
+                  className={`w-full bg-black/50 border ${
+                    fieldError?.field === "password" ? "border-red-500/50" : "border-white/10"
+                  } text-white font-mono text-lg py-3 px-4 focus:outline-none focus:border-cyan-500/50 focus:bg-cyan-950/10 transition-all placeholder:text-white/10`}
+                />
+                <div
+                  className={`absolute top-0 left-0 w-2 h-2 border-t border-l ${
+                    fieldError?.field === "password"
+                      ? "border-red-500"
+                      : "border-white/30 group-focus-within:border-cyan-500"
+                  } transition-colors`}
+                />
+                <div
+                  className={`absolute bottom-0 right-0 w-2 h-2 border-b border-r ${
+                    fieldError?.field === "password"
+                      ? "border-red-500"
+                      : "border-white/30 group-focus-within:border-cyan-500"
+                  } transition-colors`}
+                />
+
+                <div
+                  className={`absolute -bottom-6 right-0 text-red-500 text-[10px] font-mono font-bold tracking-wider flex items-center gap-2 transition-all duration-200 ${
+                    fieldError?.field === "password" ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1 pointer-events-none"
+                  }`}
+                >
+                  <span className="inline-block w-1.5 h-1.5 bg-red-500 rounded-sm animate-pulse shadow-[0_0_10px_#ef4444]" />
+                  {fieldError?.field === "password" ? fieldError.msg : ""}
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4 flex flex-col gap-3">
+              <IconButton text="ENGAGE_" onClick={submitSignIn} />
+              <IconButton
+                text="BACK_"
+                onClick={() => {
+                  setMode("choice");
+                  setEmail("");
+                  setPassword("");
+                  setFieldError(null);
+                }}
+                className="opacity-80"
+              />
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -443,7 +614,6 @@ function LocationMarkers({
     timeoutRef.current = setTimeout(() => {
       setActiveMarker(null);
       setRotationPaused(false);
-      setLoginVisible(false);
       document.body.style.cursor = 'auto';
     }, 3000);
   };
@@ -776,12 +946,22 @@ function ActionButton({ icon: Icon, onClick, type = "neutral" }: { icon: any, on
   );
 }
 
-export default function SolarSystem() {
+export default function SolarSystem({ onLogin }: { onLogin: () => void }) {
   const [selectedPlanet, setSelectedPlanet] = useState<PlanetData | null>(null);
   const [loginVisible, setLoginVisible] = useState(false);
-  const [showParallax, setShowParallax] = useState(false);
   const [isZoomingIn, setIsZoomingIn] = useState(false);
   const planetRefs = useRef<{[key: string]: THREE.Group}>({});
+
+  // Keep the auth modal open while a planet is selected (prevents auto-closing while typing).
+  useEffect(() => {
+    if (!selectedPlanet) {
+      setLoginVisible(false);
+      return;
+    }
+    // During zoom-out/route transition, keep it hidden.
+    if (isZoomingIn) return;
+    setLoginVisible(true);
+  }, [selectedPlanet, isZoomingIn]);
 
   // Font and Styles import
   useEffect(() => {
@@ -833,25 +1013,19 @@ export default function SolarSystem() {
   };
 
   const handleLogin = () => {
-     setIsZoomingIn(true);
-     setLoginVisible(false); // Hide the card during zoom
-     // Wait for zoom animation
-     setTimeout(() => {
-        setShowParallax(true);
-     }, 1500);
-  };
-
-  const handleBack = () => {
-    setShowParallax(false);
-    setIsZoomingIn(false);
-    setLoginVisible(true);
+    setIsZoomingIn(true);
+    setLoginVisible(false); // Hide the card during zoom
+    // Let the zoom kick in, then route away
+    setTimeout(() => {
+      onLogin();
+    }, 900);
   };
 
   return (
     <div className="w-full h-screen bg-[#000814] relative font-['Orbitron',_sans-serif] overflow-hidden">
       
       {/* Solar System Layer */}
-      <div className={`absolute inset-0 transition-opacity duration-1000 ${showParallax ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+      <div className="absolute inset-0">
         <Canvas
           shadows
           camera={{ position: [0, 10, 45], fov: 45 }}
@@ -914,8 +1088,8 @@ export default function SolarSystem() {
 
                {/* Main Title */}
                <GlitchText 
-                 text="COSMIC" 
-                 className="text-[10vw] font-black text-white leading-none tracking-tighter font-['Orbitron'] drop-shadow-[0_0_30px_rgba(236,72,153,0.3)] mix-blend-overlay opacity-90"
+                 text="IASTROMATCH" 
+                 className="text-[7vw] font-black text-white leading-none tracking-tighter font-['Orbitron'] drop-shadow-[0_0_30px_rgba(236,72,153,0.3)] mix-blend-overlay opacity-90"
                  color1="text-pink-500"
                  color2="text-cyan-500"
                />
@@ -960,8 +1134,8 @@ export default function SolarSystem() {
              {/* Bottom Right Title */}
              <div>
                <GlitchText 
-                 text="MATCH"
-                 className="text-[10vw] font-black text-white leading-none tracking-tighter font-['Orbitron'] text-right drop-shadow-[0_0_30px_rgba(6,182,212,0.3)] mix-blend-overlay opacity-90"
+                 text="CYBERPUNK"
+                 className="text-[7vw] font-black text-white leading-none tracking-tighter font-['Orbitron'] text-right drop-shadow-[0_0_30px_rgba(6,182,212,0.3)] mix-blend-overlay opacity-90 italic"
                  color1="text-cyan-500"
                  color2="text-pink-500"
                />
@@ -971,18 +1145,13 @@ export default function SolarSystem() {
 
         {/* Cyberpunk Card Overlay */}
         {selectedPlanet && loginVisible && !isZoomingIn && (
-          <div className="absolute right-8 md:right-16 top-1/2 -translate-y-1/2 z-20">
+          <div className="absolute right-8 md:right-16 top-1/2 -translate-y-1/2 z-20 pointer-events-auto">
             <LoginCard 
-              className="w-[350px] md:w-[400px] animate-in fade-in slide-in-from-right-20 duration-500" 
+              className="animate-in fade-in slide-in-from-right-20 duration-500" 
               onLogin={handleLogin}
             />
           </div>
         )}
-      </div>
-
-      {/* Parallax Layer - Always mounted to preload assets, hidden until active */}
-      <div className={`absolute inset-0 z-50 transition-opacity duration-1000 ${showParallax ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
-           <ParallaxLogin onBack={handleBack} isActive={showParallax} />
       </div>
 
     </div>
