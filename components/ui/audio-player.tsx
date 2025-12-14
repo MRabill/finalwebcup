@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Volume2, VolumeX, Play, Pause } from "lucide-react"
+import { Volume2, VolumeX, Play, Pause, Square } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { cn } from "@/lib/utils"
@@ -155,6 +155,13 @@ export default function AudioPlayer({
   const togglePlay = () => setIsPlaying(!isPlaying)
   const toggleMute = () => setIsMuted(!isMuted)
 
+  const handleStop = () => {
+    setIsPlaying(false)
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0
+    }
+  }
+
   const handleVolumeChange = (value: number[]) => {
     const newVolume = value[0]
     setVolume(newVolume)
@@ -205,6 +212,17 @@ export default function AudioPlayer({
             disabled={!isLoaded || isError}
           >
             {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-white hover:bg-white/20"
+            onClick={handleStop}
+            disabled={!isLoaded || isError}
+            title="Stop"
+          >
+            <Square size={16} fill="currentColor" />
           </Button>
 
           {showTitle && title && (

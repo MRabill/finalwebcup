@@ -1,0 +1,93 @@
+{
+  "dating-chat-interface": {
+    "description": "Cyberpunk-themed dating chat interface with invite system and AI webhook integration",
+    "components": [
+      {
+        "name": "DatingChatInterface",
+        "path": "components/dating-chat-interface.tsx",
+        "type": "client-component",
+        "description": "Main chat interface component with full lifecycle management"
+      }
+    ],
+    "styles": [
+      {
+        "name": "Dating Chat CSS",
+        "path": "components/dating-chat.css",
+        "description": "All cyberpunk animations and visual effects"
+      }
+    ],
+    "routes": [
+      {
+        "path": "/chat",
+        "file": "app/chat/page.tsx",
+        "description": "Chat directory with profile selection UI"
+      },
+      {
+        "path": "/chat/[id]",
+        "file": "app/chat/[id]/page.tsx",
+        "description": "Dynamic chat route for specific profile"
+      }
+    ],
+    "features": {
+      "invite-system": {
+        "description": "Users send invites before chatting",
+        "states": ["idle", "inviting", "waiting", "active"],
+        "wait-time": "6-10 seconds random"
+      },
+      "webhook-integration": {
+        "url": "https://mrabeel.app.n8n.cloud/webhook/e152d4ad-78ed-4b42-893e-4a49373882ad",
+        "method": "POST",
+        "request-body": {
+          "message": "string",
+          "chatSessionUUIDS": "uuid"
+        },
+        "response-body": {
+          "output": "string"
+        }
+      },
+      "animations": {
+        "glitch-text": "0.5s RGB split effect",
+        "neon-glow": "2s pulsing glow",
+        "scan-line": "3s moving line",
+        "float-up": "0.5s message entrance",
+        "spinner-rotate": "2-3s waiting animation"
+      },
+      "colors": {
+        "primary-neon": "#00ffff",
+        "secondary-neon": "#d946ef",
+        "background": "#0a0e27",
+        "surface": "#1a0a2e"
+      }
+    },
+    "usage": {
+      "basic": "import DatingChatInterface from '@/components/dating-chat-interface';",
+      "example": "<DatingChatInterface targetAlias='NeonRonin' targetAvatar='url' />"
+    },
+    "dependencies": [
+      "next@^15.5.0",
+      "react@^19",
+      "uuid@^11.1.0",
+      "tailwindcss@^3.4.17"
+    ],
+    "api-integration": {
+      "session-tracking": "UUID-based per conversation",
+      "message-flow": "User → Webhook → AI Response → Display",
+      "status-messages": [
+        "scanning...",
+        "encrypting...",
+        "decrypting...",
+        "transmitting...",
+        "handshaking...",
+        "synchronizing...",
+        "buffering...",
+        "quantum-linking..."
+      ]
+    },
+    "customization": {
+      "change-colors": "Update Tailwind classes (border-cyan-400, etc.)",
+      "change-wait-time": "Modify acceptTime in useEffect",
+      "change-statuses": "Edit sciTechStatuses array",
+      "change-webhook": "Update WEBHOOK_URL constant"
+    }
+  }
+}
