@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useMemo, useState, useEffect } from "react";
+import React, { useRef, useMemo, useState, useEffect, Suspense } from "react";
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { OrbitControls, Line, Html } from "@react-three/drei";
 import { EffectComposer, Bloom, Glitch } from "@react-three/postprocessing";
@@ -206,11 +206,33 @@ const PLANETS: PlanetData[] = [
 
 // --- Components ---
 
+// Loading fallback component
+function UniverseBackgroundFallback() {
+  return (
+    <mesh>
+      <sphereGeometry args={[400, 16, 16]} />
+      <meshBasicMaterial color={new THREE.Color(0.05, 0.05, 0.1)} side={THREE.BackSide} />
+    </mesh>
+  );
+}
+
 function UniverseBackground({ onBackgroundClick }: { onBackgroundClick?: () => void }) {
   const [starTexture, skyTexture] = useLoader(THREE.TextureLoader, [
     "/textures/8k_stars.jpg",
     "/textures/stars.png"
   ]);
+
+  // Optimize texture settings for faster loading
+  if (starTexture) {
+    starTexture.generateMipmaps = true;
+    starTexture.minFilter = THREE.LinearMipmapLinearFilter;
+    starTexture.magFilter = THREE.LinearFilter;
+  }
+  if (skyTexture) {
+    skyTexture.generateMipmaps = true;
+    skyTexture.minFilter = THREE.LinearMipmapLinearFilter;
+    skyTexture.magFilter = THREE.LinearFilter;
+  }
 
   return (
     <group onClick={(e) => {
@@ -219,7 +241,8 @@ function UniverseBackground({ onBackgroundClick }: { onBackgroundClick?: () => v
       onBackgroundClick && onBackgroundClick();
     }}>
       <mesh>
-        <sphereGeometry args={[400, 64, 64]} />
+        {/* Reduced from 64,64 to 32,32 for better performance */}
+        <sphereGeometry args={[400, 32, 32]} />
         <meshBasicMaterial 
           map={starTexture} 
           side={THREE.BackSide} 
@@ -228,7 +251,8 @@ function UniverseBackground({ onBackgroundClick }: { onBackgroundClick?: () => v
         />
       </mesh>
       <mesh>
-        <sphereGeometry args={[390, 64, 64]} />
+        {/* Reduced from 64,64 to 32,32 for better performance */}
+        <sphereGeometry args={[390, 32, 32]} />
         <meshBasicMaterial 
           map={skyTexture} 
           side={THREE.BackSide} 
@@ -246,10 +270,18 @@ function Sun() {
   const texture = useLoader(THREE.TextureLoader, "/textures/sun.png");
   const lightRef = useRef<THREE.PointLight>(null);
 
+  // Optimize texture
+  if (texture) {
+    texture.generateMipmaps = true;
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+  }
+
   return (
     <group>
       <mesh>
-        <sphereGeometry args={[5, 64, 64]} />
+        {/* Reduced from 64,64 to 32,32 for better performance */}
+        <sphereGeometry args={[5, 32, 32]} />
         <meshBasicMaterial 
           map={texture} 
           color={new THREE.Color(3, 2.4, 1.5)} 
@@ -825,6 +857,15 @@ function Planet({
   const startAngle = data.initialAngle;
   const [isRotationPaused, setRotationPaused] = useState(false);
 
+  // Optimize texture loading
+  useEffect(() => {
+    if (texture) {
+      texture.generateMipmaps = true;
+      texture.minFilter = THREE.LinearMipmapLinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+    }
+  }, [texture]);
+
   // Register ref
   useEffect(() => {
     if (meshRef.current) {
@@ -856,7 +897,8 @@ function Planet({
         onPointerOut={() => document.body.style.cursor = 'auto'}
       >
         <mesh castShadow receiveShadow>
-          <sphereGeometry args={[data.size, 32, 32]} />
+          {/* Reduced from 32,32 to 24,24 for better performance */}
+          <sphereGeometry args={[data.size, 24, 24]} />
           <meshStandardMaterial 
             map={texture} 
             roughness={0.7} 
@@ -1085,7 +1127,7 @@ function StatBox({ label, value, color = "text-white" }: { label: string, value:
   return (
     <div className="bg-white/5 border border-white/10 p-2 relative overflow-hidden group hover:bg-white/10 transition-colors">
       <div className="absolute top-0 left-0 w-[2px] h-full bg-gradient-to-b from-cyan-500 to-pink-500 group-hover:w-[4px] transition-all"></div>
-      <span className="text-[10px] text-gray-400 uppercase tracking-widest block mb-1 font-mono flex justify-between">
+      <span className="text-[10px] text-gray-400 uppercase tracking-widest mb-1 font-mono flex justify-between">
         {label}
         <Activity size={10} className="text-pink-500/50" />
       </span>
@@ -1355,6 +1397,11 @@ export default function SolarSystem({ onLogin }: { onLogin: () => void }) {
         50% { opacity: 1; }
         100% { transform: translateY(-100px) scale(1.5); opacity: 0; }
       }
+      @keyframes progress-scan {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
     `;
     document.head.appendChild(style);
 
@@ -1387,30 +1434,188 @@ export default function SolarSystem({ onLogin }: { onLogin: () => void }) {
     }, 900);
   };
 
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [dataStreamIds] = useState(() => 
+    Array.from({length: 5}, () => Math.random().toString(16).slice(2,8).toUpperCase())
+  );
+
+  // Update loading progress
+  useEffect(() => {
+    if (!isLoading) return;
+    
+    const interval = setInterval(() => {
+      setLoadingProgress((prev) => {
+        if (prev >= 100) return 100;
+        return Math.min(prev + Math.random() * 15, 100);
+      });
+    }, 200);
+
+    return () => clearInterval(interval);
+  }, [isLoading]);
+
   return (
     <div className="w-full h-screen bg-[#000814] relative font-['Orbitron',_sans-serif] overflow-hidden">
       
+      {/* Cyberpunk Loading State */}
+      {isLoading && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#000814] overflow-hidden">
+          {/* Grid Background */}
+          <div className="absolute inset-0 opacity-10"
+            style={{ 
+              backgroundImage: "linear-gradient(cyan 1px, transparent 1px), linear-gradient(90deg, cyan 1px, transparent 1px)", 
+              backgroundSize: "50px 50px" 
+            }}
+          />
+          
+          {/* Scanning Lines */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-500 to-transparent absolute top-1/4 animate-scan opacity-30"></div>
+            <div className="w-full h-[2px] bg-gradient-to-r from-transparent via-pink-500 to-transparent absolute top-1/2 animate-scan opacity-30" style={{ animationDelay: '1.5s' }}></div>
+            <div className="w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-500 to-transparent absolute top-3/4 animate-scan opacity-30" style={{ animationDelay: '3s' }}></div>
+          </div>
+
+          {/* Main Loading Container */}
+          <div className="relative z-10 w-full max-w-2xl mx-auto px-8">
+            {/* Corner Accents */}
+            <div className="absolute top-0 left-0 w-12 h-[2px] bg-cyan-500 shadow-[0_0_10px_#22d3ee]"></div>
+            <div className="absolute top-0 left-0 w-[2px] h-12 bg-cyan-500 shadow-[0_0_10px_#22d3ee]"></div>
+            <div className="absolute top-0 right-0 w-12 h-[2px] bg-cyan-500 shadow-[0_0_10px_#22d3ee]"></div>
+            <div className="absolute top-0 right-0 w-[2px] h-12 bg-cyan-500 shadow-[0_0_10px_#22d3ee]"></div>
+            <div className="absolute bottom-0 left-0 w-12 h-[2px] bg-pink-500 shadow-[0_0_10px_#ec4899]"></div>
+            <div className="absolute bottom-0 left-0 w-[2px] h-12 bg-pink-500 shadow-[0_0_10px_#ec4899]"></div>
+            <div className="absolute bottom-0 right-0 w-12 h-[2px] bg-pink-500 shadow-[0_0_10px_#ec4899]"></div>
+            <div className="absolute bottom-0 right-0 w-[2px] h-12 bg-pink-500 shadow-[0_0_10px_#ec4899]"></div>
+
+            {/* Glitch Title */}
+            <div className="text-center mb-12">
+              <GlitchText 
+                text="IASTROMATCH" 
+                className="text-6xl md:text-8xl font-black text-white leading-none tracking-tighter font-['Orbitron'] drop-shadow-[0_0_30px_rgba(34,211,238,0.5)]"
+                color1="text-cyan-500"
+                color2="text-pink-500"
+              />
+              <div className="mt-4">
+                <p className="text-cyan-400 font-mono text-sm md:text-base tracking-[0.3em] font-bold">
+                  INITIALIZING UNIVERSE PROTOCOLS...
+                </p>
+              </div>
+            </div>
+
+            {/* Progress Container */}
+            <div className="bg-black/40 backdrop-blur-sm p-6 border border-cyan-500/30 border-l-4 border-l-cyan-500 mb-8">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-cyan-500 font-mono text-xs font-bold tracking-widest">SYSTEM_BOOT</span>
+                <RandomCharacters length={8} className="text-xs text-cyan-400/60" />
+              </div>
+              
+              {/* Progress Bar */}
+              <div className="h-2 bg-cyan-900/30 overflow-hidden border border-cyan-500/30 relative">
+                <div 
+                  className="h-full bg-gradient-to-r from-cyan-500 via-pink-500 to-cyan-500"
+                  style={{ 
+                    width: '100%',
+                    backgroundSize: '200% 100%',
+                    animation: 'progress-scan 2s ease-in-out infinite'
+                  }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-scan"></div>
+              </div>
+            </div>
+
+            {/* Data Stream */}
+            <div className="bg-black/40 backdrop-blur-sm p-4 border border-cyan-500/20 border-l-4 border-l-cyan-500 mb-6">
+              <div className="text-cyan-500 font-bold text-xs mb-3 tracking-widest flex items-center gap-2">
+                <div className="w-2 h-2 bg-cyan-400 animate-pulse shadow-[0_0_10px_#22d3ee]"></div>
+                DATA_STREAM_INCOMING
+              </div>
+              <div className="space-y-1 font-mono text-[10px] text-cyan-400/60">
+                {dataStreamIds.map((id, i) => {
+                  const completed = Math.floor((loadingProgress / 100) * 5);
+                  const status = i < completed ? 'OK' : i === completed ? 'LOADING' : 'PENDING';
+                  return (
+                    <div key={i} className="truncate">
+                      {`> 0x${id}_PKT_${String(i).padStart(2, '0')} [${status}]`}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Status Indicators */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-black/30 backdrop-blur-sm p-3 border border-cyan-500/20">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-2 h-2 bg-cyan-400 animate-pulse shadow-[0_0_8px_#22d3ee]"></div>
+                  <span className="text-[9px] text-cyan-400 font-mono tracking-wider">NETWORK</span>
+                </div>
+                <span className="text-cyan-300 font-mono text-xs font-bold">ONLINE</span>
+              </div>
+              <div className="bg-black/30 backdrop-blur-sm p-3 border border-pink-500/20">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-2 h-2 bg-pink-400 animate-pulse shadow-[0_0_8px_#ec4899]"></div>
+                  <span className="text-[9px] text-pink-400 font-mono tracking-wider">RENDER</span>
+                </div>
+                <span className="text-pink-300 font-mono text-xs font-bold">ACTIVE</span>
+              </div>
+              <div className="bg-black/30 backdrop-blur-sm p-3 border border-cyan-500/20">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-2 h-2 bg-cyan-400 animate-pulse shadow-[0_0_8px_#22d3ee]"></div>
+                  <span className="text-[9px] text-cyan-400 font-mono tracking-wider">SYNC</span>
+                </div>
+                <span className="text-cyan-300 font-mono text-xs font-bold">READY</span>
+              </div>
+            </div>
+
+            {/* Rotating Ring Effect */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] border border-cyan-500/10 rounded-full animate-spin-slow pointer-events-none -z-10">
+              <div className="absolute top-0 left-1/2 w-2 h-2 bg-cyan-500 rounded-full shadow-[0_0_10px_#0ff]"></div>
+              <div className="absolute bottom-0 left-1/2 w-2 h-2 bg-pink-500 rounded-full shadow-[0_0_10px_#ec4899]"></div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Solar System Layer */}
       <div className="absolute inset-0">
-        <Canvas
-          shadows
-          camera={{ position: [0, 10, 45], fov: 45 }}
-          gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, outputColorSpace: THREE.SRGBColorSpace }}
-        >
-          <UniverseBackground onBackgroundClick={() => setSelectedPlanet(null)} />
+        <Suspense fallback={null}>
+          <Canvas
+            shadows
+            camera={{ position: [0, 10, 45], fov: 45 }}
+            gl={{ 
+              antialias: true, 
+              toneMapping: THREE.ACESFilmicToneMapping, 
+              outputColorSpace: THREE.SRGBColorSpace,
+              powerPreference: "high-performance",
+              stencil: false,
+              depth: true
+            }}
+            onCreated={() => {
+              // Hide loading state once canvas is ready
+              setTimeout(() => setIsLoading(false), 500);
+            }}
+            dpr={[1, 2]} // Limit pixel ratio for better performance
+          >
+          <Suspense fallback={<UniverseBackgroundFallback />}>
+            <UniverseBackground onBackgroundClick={() => setSelectedPlanet(null)} />
+          </Suspense>
           <ambientLight intensity={0.1} />
-          <Sun />
+          <Suspense fallback={null}>
+            <Sun />
+          </Suspense>
           
-          {PLANETS.map((planet, i) => (
-            <Planet 
-              key={i} 
-              data={planet} 
-              onPlanetSelect={setSelectedPlanet}
-              setRef={handleSetRef}
-              isSelected={selectedPlanet?.name === planet.name}
-              setLoginVisible={setLoginVisible}
-            />
-          ))}
+          <Suspense fallback={null}>
+            {PLANETS.map((planet, i) => (
+              <Planet 
+                key={i} 
+                data={planet} 
+                onPlanetSelect={setSelectedPlanet}
+                setRef={handleSetRef}
+                isSelected={selectedPlanet?.name === planet.name}
+                setLoginVisible={setLoginVisible}
+              />
+            ))}
+          </Suspense>
 
           <CameraController selectedPlanet={selectedPlanet} planetRefs={planetRefs} isZoomingIn={isZoomingIn} />
 
@@ -1424,11 +1629,12 @@ export default function SolarSystem({ onLogin }: { onLogin: () => void }) {
           />
 
           <EffectComposer>
+            {/* Reduced Bloom intensity and radius for better performance */}
             <Bloom 
-              luminanceThreshold={0.05} 
+              luminanceThreshold={0.1} 
               mipmapBlur 
-              intensity={2.0} 
-              radius={0.7} 
+              intensity={1.5} 
+              radius={0.5} 
             />
             <Glitch 
               delay={new THREE.Vector2(0, 0)} 
@@ -1440,6 +1646,7 @@ export default function SolarSystem({ onLogin }: { onLogin: () => void }) {
             />
           </EffectComposer>
         </Canvas>
+        </Suspense>
       
         {/* Danger HUD Overlay */}
         {(selectedPlanet?.compatibilityScore ?? 100) < 50 && <DangerHUD />}

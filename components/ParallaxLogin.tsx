@@ -303,11 +303,26 @@ export default function ParallaxLogin({ onBack, isActive = true }: { onBack?: ()
             cyberToast.show("UPLINKING CREDENTIALS...", "info");
 
             try {
-                // 1) Create Supabase auth user
-                await createUserOnly(finalPayload);
+                // 1) Create Supabase auth user (optional - skip if not configured)
+                if (supabase && hasSupabaseCredentials) {
+                    try {
+                        await createUserOnly(finalPayload);
+                    } catch (supabaseError) {
+                        // Log but don't block onboarding if Supabase fails
+                        console.warn("Supabase user creation failed:", supabaseError);
+                        cyberToast.show("WARNING: AUTH SYNC SKIPPED", "info");
+                    }
+                } else {
+                    console.warn("Supabase not configured - skipping user creation");
+                }
 
                 // 2) Fire webhook (optional external logging)
-                await sendOnboardingToWebhook(finalPayload);
+                try {
+                    await sendOnboardingToWebhook(finalPayload);
+                } catch (webhookError) {
+                    // Log but don't block onboarding if webhook fails
+                    console.warn("Webhook failed:", webhookError);
+                }
 
                 cyberToast.show("DATASTREAM SYNCED", "success");
             } catch (e) {
@@ -684,12 +699,216 @@ export default function ParallaxLogin({ onBack, isActive = true }: { onBack?: ()
     }, []);
 
     const showLoader = isActive && (!minDelayDone || loading);
+    const [connectionProgress, setConnectionProgress] = useState(0);
+    const [dataStreamIds] = useState(() => 
+        Array.from({length: 4}, () => Math.random().toString(16).slice(2,8).toUpperCase())
+    );
+
+    // Update connection progress when submitting
+    useEffect(() => {
+        if (!isSubmitting) {
+            setConnectionProgress(0);
+            return;
+        }
+        
+        const interval = setInterval(() => {
+            setConnectionProgress((prev) => {
+                if (prev >= 100) return 100;
+                return Math.min(prev + Math.random() * 20, 100);
+            });
+        }, 150);
+
+        return () => clearInterval(interval);
+    }, [isSubmitting]);
+
+    // Add CSS animations for cyberpunk loader
+    useEffect(() => {
+        const style = document.createElement('style');
+        style.innerHTML = `
+            @keyframes glitch-1 {
+                0% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); transform: translate(0); }
+                20% { clip-path: polygon(0 10%, 100% 0, 100% 90%, 0 100%); transform: translate(-2px, 2px); }
+                40% { clip-path: polygon(0 0, 100% 10%, 100% 100%, 0 90%); transform: translate(2px, -2px); }
+                60% { clip-path: polygon(0 5%, 100% 0, 100% 95%, 0 100%); transform: translate(-1px, 1px); }
+                80% { clip-path: polygon(0 0, 100% 5%, 100% 100%, 0 95%); transform: translate(1px, -1px); }
+                100% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); transform: translate(0); }
+            }
+            @keyframes glitch-2 {
+                0% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); transform: translate(0); }
+                20% { clip-path: polygon(0 0, 100% 10%, 100% 90%, 0 100%); transform: translate(2px, -2px); }
+                40% { clip-path: polygon(0 10%, 100% 0, 100% 100%, 0 90%); transform: translate(-2px, 2px); }
+                60% { clip-path: polygon(0 0, 100% 5%, 100% 95%, 0 100%); transform: translate(1px, -1px); }
+                80% { clip-path: polygon(0 5%, 100% 0, 100% 100%, 0 95%); transform: translate(-1px, 1px); }
+                100% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); transform: translate(0); }
+            }
+            @keyframes scan {
+                0% { top: 0%; opacity: 0; }
+                10% { opacity: 1; }
+                90% { opacity: 1; }
+                100% { top: 100%; opacity: 0; }
+            }
+            @keyframes progress-scan {
+                0% { background-position: 0% 50%; }
+                50% { background-position: 100% 50%; }
+                100% { background-position: 0% 50%; }
+            }
+            @keyframes spin {
+                from { transform: translate(-50%, -50%) rotate(0deg); }
+                to { transform: translate(-50%, -50%) rotate(360deg); }
+            }
+            .clip-text {
+                clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+            }
+        `;
+        document.head.appendChild(style);
+        return () => {
+            if (document.head.contains(style)) {
+                document.head.removeChild(style);
+            }
+        };
+    }, []);
 
     return (
         <div className="absolute inset-0 z-50 bg-[#050510] text-white font-mono">
             {showLoader && <Loader warningText="CAUTION, DO NOT TURN OFF." />}
             
             <div ref={containerRef} className="absolute inset-0 z-0" />
+
+            {/* Cyberpunk Supabase Connection Loader */}
+            {isSubmitting && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#050510]/95 backdrop-blur-sm overflow-hidden">
+                    {/* Grid Background */}
+                    <div className="absolute inset-0 opacity-10"
+                        style={{ 
+                            backgroundImage: "linear-gradient(cyan 1px, transparent 1px), linear-gradient(90deg, cyan 1px, transparent 1px)", 
+                            backgroundSize: "50px 50px" 
+                        }}
+                    />
+                    
+                    {/* Scanning Lines */}
+                    <div className="absolute inset-0 pointer-events-none">
+                        <div className="w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-500 to-transparent absolute top-1/3 animate-[scan_3s_linear_infinite] opacity-30"></div>
+                        <div className="w-full h-[2px] bg-gradient-to-r from-transparent via-pink-500 to-transparent absolute top-2/3 animate-[scan_3s_linear_infinite] opacity-30" style={{ animationDelay: '1.5s' }}></div>
+                    </div>
+
+                    {/* Main Loading Container */}
+                    <div className="relative z-10 w-full max-w-xl mx-auto px-8">
+                        {/* Corner Accents */}
+                        <div className="absolute top-0 left-0 w-12 h-[2px] bg-cyan-500 shadow-[0_0_10px_#22d3ee]"></div>
+                        <div className="absolute top-0 left-0 w-[2px] h-12 bg-cyan-500 shadow-[0_0_10px_#22d3ee]"></div>
+                        <div className="absolute top-0 right-0 w-12 h-[2px] bg-cyan-500 shadow-[0_0_10px_#22d3ee]"></div>
+                        <div className="absolute top-0 right-0 w-[2px] h-12 bg-cyan-500 shadow-[0_0_10px_#22d3ee]"></div>
+                        <div className="absolute bottom-0 left-0 w-12 h-[2px] bg-pink-500 shadow-[0_0_10px_#ec4899]"></div>
+                        <div className="absolute bottom-0 left-0 w-[2px] h-12 bg-pink-500 shadow-[0_0_10px_#ec4899]"></div>
+                        <div className="absolute bottom-0 right-0 w-12 h-[2px] bg-pink-500 shadow-[0_0_10px_#ec4899]"></div>
+                        <div className="absolute bottom-0 right-0 w-[2px] h-12 bg-pink-500 shadow-[0_0_10px_#ec4899]"></div>
+
+                        {/* Title */}
+                        <div className="text-center mb-8">
+                            <h2 className="text-4xl md:text-5xl font-black text-white leading-none tracking-tighter font-['Orbitron'] drop-shadow-[0_0_30px_rgba(34,211,238,0.5)] mb-3">
+                                <span className="relative inline-block">
+                                    <span className="relative z-10">UPLINKING</span>
+                                    <span className="absolute top-0 left-0 -z-10 w-full h-full text-cyan-500 opacity-70 animate-[glitch-1_2.5s_infinite_linear_alternate-reverse] clip-text">UPLINKING</span>
+                                    <span className="absolute top-0 left-0 -z-10 w-full h-full text-pink-500 opacity-70 animate-[glitch-2_3s_infinite_linear_alternate-reverse] clip-text">UPLINKING</span>
+                                </span>
+                            </h2>
+                            <p className="text-cyan-400 font-mono text-sm md:text-base tracking-[0.3em] font-bold">
+                                SYNCING WITH SUPABASE CORE...
+                            </p>
+                        </div>
+
+                        {/* Progress Container */}
+                        <div className="bg-black/40 backdrop-blur-sm p-6 border border-cyan-500/30 border-l-4 border-l-cyan-500 mb-6">
+                            <div className="flex items-center justify-between mb-3">
+                                <span className="text-cyan-500 font-mono text-xs font-bold tracking-widest">CONNECTION_STATUS</span>
+                                <span className="text-cyan-400/60 font-mono text-xs">
+                                    {Math.floor(connectionProgress)}%
+                                </span>
+                            </div>
+                            
+                            {/* Progress Bar */}
+                            <div className="h-2 bg-cyan-900/30 overflow-hidden border border-cyan-500/30 relative">
+                                <div 
+                                    className="h-full bg-gradient-to-r from-cyan-500 via-pink-500 to-cyan-500"
+                                    style={{ 
+                                        width: `${connectionProgress}%`,
+                                        backgroundSize: '200% 100%',
+                                        animation: 'progress-scan 2s ease-in-out infinite',
+                                        transition: 'width 0.3s ease-out'
+                                    }}
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-[scan_3s_linear_infinite]"></div>
+                            </div>
+                        </div>
+
+                        {/* Data Stream */}
+                        <div className="bg-black/40 backdrop-blur-sm p-4 border border-cyan-500/20 border-l-4 border-l-cyan-500 mb-6">
+                            <div className="text-cyan-500 font-bold text-xs mb-3 tracking-widest flex items-center gap-2">
+                                <div className="w-2 h-2 bg-cyan-400 animate-pulse shadow-[0_0_10px_#22d3ee]"></div>
+                                AUTH_STREAM_INCOMING
+                            </div>
+                            <div className="space-y-1 font-mono text-[10px] text-cyan-400/60">
+                                {dataStreamIds.map((id, i) => {
+                                    const completed = Math.floor((connectionProgress / 100) * 4);
+                                    const status = i < completed ? 'OK' : i === completed ? 'SYNCING' : 'PENDING';
+                                    const statusColor = status === 'OK' ? 'text-green-400' : status === 'SYNCING' ? 'text-cyan-400' : 'text-cyan-400/40';
+                                    return (
+                                        <div key={i} className={`truncate ${statusColor}`}>
+                                            {`> 0x${id}_AUTH_${String(i).padStart(2, '0')} [${status}]`}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Status Grid */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-black/30 backdrop-blur-sm p-3 border border-cyan-500/20">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <div className="w-2 h-2 bg-cyan-400 animate-pulse shadow-[0_0_8px_#22d3ee]"></div>
+                                    <span className="text-[9px] text-cyan-400 font-mono tracking-wider">DATABASE</span>
+                                </div>
+                                <span className="text-cyan-300 font-mono text-xs font-bold">
+                                    {connectionProgress > 30 ? 'CONNECTED' : 'CONNECTING'}
+                                </span>
+                            </div>
+                            <div className="bg-black/30 backdrop-blur-sm p-3 border border-pink-500/20">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <div className="w-2 h-2 bg-pink-400 animate-pulse shadow-[0_0_8px_#ec4899]"></div>
+                                    <span className="text-[9px] text-pink-400 font-mono tracking-wider">AUTH</span>
+                                </div>
+                                <span className="text-pink-300 font-mono text-xs font-bold">
+                                    {connectionProgress > 60 ? 'AUTHENTICATED' : 'AUTHENTICATING'}
+                                </span>
+                            </div>
+                            <div className="bg-black/30 backdrop-blur-sm p-3 border border-cyan-500/20">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <div className="w-2 h-2 bg-cyan-400 animate-pulse shadow-[0_0_8px_#22d3ee]"></div>
+                                    <span className="text-[9px] text-cyan-400 font-mono tracking-wider">PROFILE</span>
+                                </div>
+                                <span className="text-cyan-300 font-mono text-xs font-bold">
+                                    {connectionProgress > 80 ? 'SYNCED' : 'SYNCING'}
+                                </span>
+                            </div>
+                            <div className="bg-black/30 backdrop-blur-sm p-3 border border-pink-500/20">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <div className="w-2 h-2 bg-pink-400 animate-pulse shadow-[0_0_8px_#ec4899]"></div>
+                                    <span className="text-[9px] text-pink-400 font-mono tracking-wider">STATUS</span>
+                                </div>
+                                <span className="text-pink-300 font-mono text-xs font-bold">
+                                    {connectionProgress >= 100 ? 'READY' : 'PROCESSING'}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Rotating Ring Effect */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] border border-cyan-500/10 rounded-full animate-[spin_20s_linear_infinite] pointer-events-none -z-10">
+                            <div className="absolute top-0 left-1/2 w-2 h-2 bg-cyan-500 rounded-full shadow-[0_0_10px_#0ff]"></div>
+                            <div className="absolute bottom-0 left-1/2 w-2 h-2 bg-pink-500 rounded-full shadow-[0_0_10px_#ec4899]"></div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Only render UI when active to prevent blocking interactions in SolarSystem */}
             <div className={`absolute inset-0 z-10 pointer-events-none ${isActive && !showLoader ? '' : 'hidden'}`}>
