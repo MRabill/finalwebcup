@@ -5,7 +5,7 @@ import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { OrbitControls, Line, Html } from "@react-three/drei";
 import { EffectComposer, Bloom, Glitch } from "@react-three/postprocessing";
 import * as THREE from "three";
-import { X, Heart, XCircle, Aperture, Activity, Radio, Crosshair } from "lucide-react";
+import { X, Heart, XCircle, Aperture, Activity, Radio, Crosshair, Skull, TriangleAlert } from "lucide-react";
 import IconButton from "./IconButton";
 
 // --- Data & Configuration ---
@@ -34,82 +34,108 @@ interface PlanetData {
   temp?: string;
   dayLength?: string;
   age?: string;
+
+  // New fields
+  atmosphere?: string;
+  dangerLevel?: string;
+  politicalInstability?: string;
+  compatibilityScore?: number;
 }
 
 const PLANETS: PlanetData[] = [
   {
-    name: "Mercury",
+    name: "Shadow Core",
     size: 0.38,
     dist: 7,
     speed: 0.004,
     initialAngle: 0,
     texture: "/textures/mercury.jpg",
     type: "planet",
-    description: "Small, fast, and hot. I like to keep things moving. No baggage (moons).",
+    description: "A scorched rock close to the energy source. Shadows here are absolute.",
     temp: "167°C",
     dayLength: "1,408h",
     age: "4.5B",
+    atmosphere: "Ionized Plasma Haze",
+    dangerLevel: "Solar Flare Bombardment",
+    politicalInstability: "AI Mining Guild Control",
+    compatibilityScore: 15,
     moons: []
   },
   {
-    name: "Venus",
+    name: "Nova District",
     size: 0.9,
     dist: 11,
     speed: 0.0016,
     initialAngle: 4.8,
     texture: "/textures/venus.jpg",
     type: "planet",
-    description: "I'm toxic but beautiful. I radiate heat and shine brighter than anyone else.",
+    description: "A toxic paradise of acid rain and crushing pressure. High fashion meets high mortality.",
     temp: "464°C",
     dayLength: "5,832h",
     age: "4.5B",
+    atmosphere: "Sulfuric Smog Density: 99%",
+    dangerLevel: "Corrosive Acid Monsoons",
+    politicalInstability: "MegaCorp Hostile Takeover",
+    compatibilityScore: 45,
     moons: []
   },
   {
-    name: "Earth",
+    name: "Cyber Earth",
     size: 1,
     dist: 15,
     speed: 0.001,
     initialAngle: 3.45,
     texture: "/textures/earth.jpg",
     type: "planet",
-    description: "The only one with life (that we know of). I have water, cats, and memes.",
+    description: "The cradle of humanity, now a sprawling neon megastructure.",
     temp: "15°C",
     dayLength: "24h",
     age: "4.5B",
+    atmosphere: "Filtered O2 (Sub. Req.)",
+    dangerLevel: "Nanotech Smog / Acid Rain",
+    politicalInstability: "Corp. Oligarchy vs Resistance",
+    compatibilityScore: 88,
     moons: [
       { name: "Moon", size: 0.27, dist: 2.5, speed: 0.037, initialAngle: 1.2, color: "#888888" }
     ]
   },
   {
-    name: "Mars",
+    name: "Mars Colony",
     size: 0.8,
     dist: 19,
     speed: 0.00053,
     initialAngle: 0.9,
     texture: "/textures/mars.jpg",
     type: "planet",
-    description: "A bit rusty, but I have great potential. Looking for someone to colonize me.",
+    description: "The red frontier. Hard labor, dust storms, and the dream of terraforming.",
     temp: "-65°C",
     dayLength: "25h",
     age: "4.6B",
+    atmosphere: "Pressurized Dome Clusters",
+    dangerLevel: "Silicate Razor Storms",
+    politicalInstability: "Indentured Worker Uprisings",
+    compatibilityScore: 35,
     moons: [
       { name: "Phobos", size: 0.05, dist: 1.5, speed: 0.32, color: "#664222" },
       { name: "Deimos", size: 0.03, dist: 2.2, speed: 0.08, color: "#664222" }
     ]
   },
   {
-    name: "Jupiter",
+    name: "Neo Tokyo",
     size: 2.5,
     dist: 25,
     speed: 0.000084,
     initialAngle: 2.7,
     texture: "/textures/jupiter.jpg",
     type: "planet",
-    description: "Big personality. I protect the inner planets. King of the solar system.",
+    description: "A gas giant of endless storms. Floating cities house the elite.",
     temp: "-110°C",
     dayLength: "10h",
     age: "4.6B",
+    atmosphere: "Toxic Gas Oceans",
+    dangerLevel: "Gravitational Shear Waves",
+    politicalInstability: "Yakuza High-Orbit Syndicate",
+    compatibilityScore: 75,
     moons: [
       { name: "Io", size: 0.15, dist: 3.5, speed: 0.56, color: "#FFFF99" },
       { name: "Europa", size: 0.13, dist: 4.2, speed: 0.28, color: "#87CEEB" },
@@ -118,7 +144,7 @@ const PLANETS: PlanetData[] = [
     ]
   },
   {
-    name: "Saturn",
+    name: "Orbital X",
     size: 2.0,
     dist: 31,
     speed: 0.000034,
@@ -126,40 +152,52 @@ const PLANETS: PlanetData[] = [
     texture: "/textures/saturn.jpg",
     hasRings: true,
     type: "planet",
-    description: "Put a ring on it? I already have thousands. The jewel of the cosmos.",
+    description: "The ringed jewel. A hub for smugglers, traders, and ring-racers.",
     temp: "-140°C",
     dayLength: "10.7h",
     age: "4.5B",
+    atmosphere: "Cryo-Vapor Clouds",
+    dangerLevel: "Debris Field Collisions",
+    politicalInstability: "Smuggler Cartel Warlords",
+    compatibilityScore: 98,
     moons: [
         { name: "Titan", size: 0.21, dist: 5.5, speed: 0.063, color: "#FFa500" }
     ]
   },
   {
-    name: "Uranus",
+    name: "Void Helix",
     size: 1.2,
     dist: 37,
     speed: 0.000012,
     initialAngle: 1.2,
     texture: "/textures/uranus.jpg",
     type: "planet",
-    description: "I spin differently. Ice cold demeanor, but chill once you get to know me.",
+    description: "A frozen giant spinning on its side. Home to data vaults and cryo-prisons.",
     temp: "-195°C",
     dayLength: "17h",
     age: "4.5B",
+    atmosphere: "Frozen Methane Mist",
+    dangerLevel: "Absolute Zero Pockets",
+    politicalInstability: "Autonomous Data-Vault Sentinels",
+    compatibilityScore: 5,
     moons: []
   },
   {
-    name: "Neptune",
+    name: "Neon Prime",
     size: 1.1,
     dist: 42,
     speed: 0.0000061,
     initialAngle: 6.1,
     texture: "/textures/neptune.jpg",
     type: "planet",
-    description: "Mysterious, distant, and windy. I love long drifts in the dark.",
+    description: "The furthest outpost. Deep blue winds and illegal cybernetics labs.",
     temp: "-200°C",
     dayLength: "16h",
     age: "4.5B",
+    atmosphere: "Dark Matter Turbulence",
+    dangerLevel: "Supersonic Diamond Winds",
+    politicalInstability: "Anarchist Hacker Collectives",
+    compatibilityScore: 60,
     moons: [
         { name: "Triton", size: 0.11, dist: 3.0, speed: 0.17, color: "#87CEEB" }
     ]
@@ -252,11 +290,102 @@ function OrbitPath({ radius }: { radius: number }) {
 }
 
 
-function LoginCard({ className = "", onLogin }: { className?: string, onLogin: () => void }) {
+// --- New Components ---
+
+function WarningScreen({ score }: { score: number }) {
+  let message = "CAUTION ADVISED";
+  if (score < 10) message = "IMMINENT DEATH";
+  else if (score < 30) message = "CRITICAL HAZARD";
+
+  return (
+    <div className="absolute inset-0 z-50 bg-black/90 flex flex-col items-center justify-center border-2 border-red-500 overflow-hidden">
+      {/* Hazard Stripes Background */}
+      <div 
+        className="absolute inset-0 opacity-20"
+        style={{
+          backgroundImage: "repeating-linear-gradient(45deg, #ef4444 0, #ef4444 10px, transparent 10px, transparent 20px)"
+        }}
+      />
+      
+      <div className="relative z-10 flex flex-col items-center animate-pulse">
+        <Skull size={48} className="text-red-500 mb-4" />
+        <div className="bg-red-500/20 px-4 py-1 border border-red-500 mb-2">
+           <span className="text-red-500 font-black tracking-[0.3em] text-xl">WARNING</span>
+        </div>
+        <h3 className="text-white font-mono font-bold text-lg tracking-wider mb-1">THREAT DETECTED</h3>
+        <p className="text-red-400 font-mono text-xs tracking-[0.2em]">{message}</p>
+        <p className="text-red-500/50 font-mono text-[10px] mt-4">COMPATIBILITY: {score}%</p>
+      </div>
+
+      {/* Corners */}
+      <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-red-500" />
+      <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-red-500" />
+      <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-red-500" />
+      <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-red-500" />
+    </div>
+  );
+}
+
+function LoveAnimation() {
+  return (
+    <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+       {[...Array(6)].map((_, i) => (
+         <div 
+           key={i}
+           className="absolute text-pink-500/30 animate-float-up"
+           style={{
+             left: `${20 + Math.random() * 60}%`,
+             bottom: '-20px',
+             animationDelay: `${Math.random() * 2}s`,
+             fontSize: `${20 + Math.random() * 20}px`
+           }}
+         >
+           <Heart fill="currentColor" />
+         </div>
+       ))}
+       <div className="absolute inset-0 bg-gradient-to-t from-pink-500/10 to-transparent animate-pulse" />
+    </div>
+  );
+}
+
+function DangerHUD() {
+  return (
+    <div className="absolute inset-0 pointer-events-none z-30 flex flex-col justify-between overflow-hidden">
+       {/* Top Bar */}
+       <div className="w-full h-2 bg-red-600/50 shadow-[0_0_20px_#ef4444] animate-pulse"></div>
+       
+       <div className="flex-1 flex justify-between">
+          {/* Left Bar */}
+          <div className="w-2 h-full bg-red-600/50 shadow-[0_0_20px_#ef4444] animate-pulse"></div>
+          {/* Right Bar */}
+          <div className="w-2 h-full bg-red-600/50 shadow-[0_0_20px_#ef4444] animate-pulse"></div>
+       </div>
+
+       {/* Bottom Bar */}
+       <div className="w-full h-2 bg-red-600/50 shadow-[0_0_20px_#ef4444] animate-pulse"></div>
+       
+       {/* Vignette */}
+       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_50%,rgba(220,38,38,0.2)_100%)] animate-pulse"></div>
+       
+       {/* Tech Lines */}
+        <div className="absolute top-4 left-4 w-32 h-[1px] bg-red-500 animate-pulse"></div>
+        <div className="absolute top-4 right-4 w-32 h-[1px] bg-red-500 animate-pulse"></div>
+        <div className="absolute bottom-4 left-4 w-32 h-[1px] bg-red-500 animate-pulse"></div>
+        <div className="absolute bottom-4 right-4 w-32 h-[1px] bg-red-500 animate-pulse"></div>
+    </div>
+  );
+}
+
+function LoginCard({ className = "", onLogin, planet }: { className?: string, onLogin: () => void, planet: PlanetData | null }) {
   const [mode, setMode] = useState<"choice" | "signin" | "signup">("choice");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fieldError, setFieldError] = useState<{ field: "email" | "password" | "global"; msg: string } | null>(null);
+
+  // Determine which specialized screen to show (if any)
+  const score = planet?.compatibilityScore ?? 0;
+  const isWarning = score < 50;
+  const isHighLove = score >= 80;
 
   const validateSignIn = () => {
     const trimmedEmail = email.trim();
@@ -288,9 +417,15 @@ function LoginCard({ className = "", onLogin }: { className?: string, onLogin: (
 
   return (
     <div
-      className={`bg-[#0a0a0f]/60 backdrop-blur-xl p-8 relative overflow-visible w-[350px] md:w-[400px] ${className}`}
+      className={`bg-[#0a0a0f]/60 backdrop-blur-xl p-8 relative overflow-hidden w-[350px] md:w-[400px] ${className}`}
       onClick={(e) => e.stopPropagation()}
     >
+      {/* High Compatibility Background Animation */}
+      {isHighLove && <LoveAnimation />}
+
+      {/* Warning Screen Overlay */}
+      {isWarning && <WarningScreen score={score} />}
+
       {/* Rotating glow dot (same as ParallaxLogin) */}
       <div className="absolute inset-0 pointer-events-none z-0">
         <svg className="w-full h-full overflow-visible">
@@ -324,7 +459,7 @@ function LoginCard({ className = "", onLogin }: { className?: string, onLogin: (
       <div className="absolute bottom-0 right-1/4 w-16 h-[1px] bg-white/20" />
 
       {/* Header (match ParallaxLogin vibe) */}
-      <div className="flex justify-between items-start mb-8 border-b border-white/10 pb-4 relative z-10">
+      <div className="flex justify-between items-start mb-6 border-b border-white/10 pb-4 relative z-10">
         <div>
           <h2 className="text-xl font-bold text-white tracking-[0.2em]">
             IASTROMATCH
@@ -339,6 +474,37 @@ function LoginCard({ className = "", onLogin }: { className?: string, onLogin: (
           </span>
         </div>
       </div>
+
+      {planet && (
+        <div className="mb-6 relative z-10 bg-white/5 p-4 border-l-2 border-cyan-500 backdrop-blur-sm">
+           <h3 className="text-lg text-white font-bold tracking-widest mb-1">{planet.name.toUpperCase()}</h3>
+           <p className="text-xs text-gray-400 font-mono mb-3 leading-relaxed">{planet.description}</p>
+           
+           <div className="grid grid-cols-1 gap-2 text-[10px] font-mono tracking-wider">
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span className="text-pink-500">MATCH RATE</span>
+               <span className={`text-right font-bold text-lg ${
+                 (planet.compatibilityScore || 0) >= 80 ? "text-pink-500 drop-shadow-[0_0_8px_rgba(236,72,153,0.8)]" : 
+                 (planet.compatibilityScore || 0) < 50 ? "text-red-500" : "text-white"
+               }`}>
+                 {planet.compatibilityScore || 0}%
+               </span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span className="text-cyan-500">ATMOSPHERE</span>
+               <span className="text-white text-right">{planet.atmosphere || "UNKNOWN"}</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span className="text-red-400">DANGER</span>
+               <span className="text-white text-right">{planet.dangerLevel || "UNKNOWN"}</span>
+             </div>
+             <div className="flex justify-between">
+               <span className="text-purple-400">POLITICS</span>
+               <span className="text-white text-right">{planet.politicalInstability || "STABLE"}</span>
+             </div>
+           </div>
+        </div>
+      )}
 
       <div className="space-y-6 relative z-10">
         {mode === "choice" && (
@@ -950,7 +1116,191 @@ export default function SolarSystem({ onLogin }: { onLogin: () => void }) {
   const [selectedPlanet, setSelectedPlanet] = useState<PlanetData | null>(null);
   const [loginVisible, setLoginVisible] = useState(false);
   const [isZoomingIn, setIsZoomingIn] = useState(false);
+  const [glitchActive, setGlitchActive] = useState(false);
   const planetRefs = useRef<{[key: string]: THREE.Group}>({});
+  const alarmRef = useRef<HTMLAudioElement | null>(null);
+  const romanceRef = useRef<HTMLAudioElement | null>(null);
+  const glitchRef = useRef<HTMLAudioElement | null>(null);
+  const ambientRef = useRef<HTMLAudioElement | null>(null);
+  const zoomRef = useRef<HTMLAudioElement | null>(null);
+  const zoomTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Helper to play zoom sound segment
+  const playZoomSound = () => {
+    if (!zoomRef.current) {
+      zoomRef.current = new Audio("/sounds/Zoom For Scifi Hud Sound Effects.mp3");
+      zoomRef.current.volume = 0.5;
+    }
+
+    const audio = zoomRef.current;
+    
+    // Clear any pending stop timeout
+    if (zoomTimeoutRef.current) {
+        clearTimeout(zoomTimeoutRef.current);
+    }
+
+    // Reset and play from 3s
+    audio.currentTime = 3;
+    audio.play().catch(() => {});
+
+    // Stop after 3 seconds (at 00:06)
+    zoomTimeoutRef.current = setTimeout(() => {
+        audio.pause();
+        audio.currentTime = 3;
+    }, 3000);
+  };
+
+  // Interaction unlock for audio
+  useEffect(() => {
+    const handleInteraction = () => {
+        // Unlock Ambient
+        if (ambientRef.current) {
+            ambientRef.current.play().catch(() => {});
+        }
+        
+        // Unlock Glitch (silent play/pause)
+        if (glitchRef.current) {
+            glitchRef.current.play().then(() => {
+                glitchRef.current?.pause();
+                glitchRef.current!.currentTime = 0;
+            }).catch(() => {});
+        }
+
+        // Unlock Zoom
+        if (zoomRef.current) {
+             zoomRef.current.play().then(() => {
+                zoomRef.current?.pause();
+                zoomRef.current!.currentTime = 3;
+             }).catch(() => {});
+        }
+
+        document.removeEventListener('click', handleInteraction);
+        document.removeEventListener('keydown', handleInteraction);
+    };
+
+    document.addEventListener('click', handleInteraction);
+    document.addEventListener('keydown', handleInteraction);
+
+    return () => {
+        document.removeEventListener('click', handleInteraction);
+        document.removeEventListener('keydown', handleInteraction);
+    };
+  }, []);
+
+  // Ambient Sound Logic
+  useEffect(() => {
+    if (!ambientRef.current) {
+      ambientRef.current = new Audio("/sounds/ambient.mp3");
+      ambientRef.current.loop = true;
+      ambientRef.current.volume = 0.8; 
+    }
+
+    // Try playing immediately
+    ambientRef.current.play().catch(() => {
+        // Will be handled by the interaction listener above
+    });
+
+    return () => {
+      if (ambientRef.current) {
+        ambientRef.current.pause();
+      }
+    };
+  }, []);
+
+  // Audio Logic (Alarm & Romance)
+  useEffect(() => {
+    const score = selectedPlanet?.compatibilityScore ?? 100;
+    const isDangerous = selectedPlanet && score < 50;
+    const isRomantic = selectedPlanet && score >= 80;
+
+    // Handle Alarm
+    if (isDangerous) {
+      if (!alarmRef.current) {
+        alarmRef.current = new Audio("/sounds/Nuclear alarm siren sound effect NUKE.mp3");
+        alarmRef.current.loop = true;
+        alarmRef.current.volume = 0.4;
+      }
+      if (alarmRef.current.paused) {
+        alarmRef.current.play().catch((e) => console.log("Alarm play failed:", e));
+      }
+    } else {
+      if (alarmRef.current) {
+        alarmRef.current.pause();
+        alarmRef.current.currentTime = 0;
+      }
+    }
+
+    // Handle Romance
+    if (isRomantic) {
+      if (!romanceRef.current) {
+        romanceRef.current = new Audio("/sounds/Romantic music sound effect.mp3");
+        romanceRef.current.loop = true;
+        romanceRef.current.volume = 0.4;
+      }
+      if (romanceRef.current.paused) {
+        romanceRef.current.play().catch((e) => console.log("Romance play failed:", e));
+      }
+    } else {
+      if (romanceRef.current) {
+        romanceRef.current.pause();
+        romanceRef.current.currentTime = 0;
+      }
+    }
+
+    // Play zoom sound on planet selection
+    if (selectedPlanet) {
+        playZoomSound();
+    }
+  }, [selectedPlanet]);
+
+  // Glitch Effect Loop
+  useEffect(() => {
+    let timeoutId: any;
+    let activeTimeoutId: any;
+
+    // Pre-load glitch sound to minimize latency
+    if (!glitchRef.current) {
+        glitchRef.current = new Audio("/sounds/Glitch Sound Effect - Free.mp3");
+        glitchRef.current.volume = 0.25;
+    }
+
+    const scheduleNextGlitch = () => {
+      const delay = Math.random() * 5000 + 5000; // 5-10s delay
+      timeoutId = setTimeout(() => {
+        setGlitchActive(true);
+        
+        if (glitchRef.current) {
+            glitchRef.current.currentTime = 4;
+            glitchRef.current.play().catch(() => {});
+        }
+
+        const duration = Math.random() * 300 + 300; // 300-600ms duration
+        activeTimeoutId = setTimeout(() => {
+            setGlitchActive(false);
+            
+            // Stop sound immediately when glitch stops
+            if (glitchRef.current) {
+                glitchRef.current.pause();
+                glitchRef.current.currentTime = 0;
+            }
+            
+            scheduleNextGlitch();
+        }, duration);
+      }, delay);
+    };
+
+    scheduleNextGlitch();
+
+    return () => {
+        clearTimeout(timeoutId);
+        clearTimeout(activeTimeoutId);
+        // Clean up audio on unmount
+        if (glitchRef.current) {
+            glitchRef.current.pause();
+            glitchRef.current.currentTime = 0;
+        }
+    };
+  }, []);
 
   // Keep the auth modal open while a planet is selected (prevents auto-closing while typing).
   useEffect(() => {
@@ -998,7 +1348,13 @@ export default function SolarSystem({ onLogin }: { onLogin: () => void }) {
       .animate-glitch-2 { animation: glitch-2 3s infinite linear alternate-reverse; }
       .animate-scan { animation: scan 3s linear infinite; }
       .animate-spin-slow { animation: spin 20s linear infinite; }
+      .animate-float-up { animation: float-up 3s ease-in-out infinite; }
       @keyframes spin { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
+      @keyframes float-up {
+        0% { transform: translateY(0) scale(0.5); opacity: 0; }
+        50% { opacity: 1; }
+        100% { transform: translateY(-100px) scale(1.5); opacity: 0; }
+      }
     `;
     document.head.appendChild(style);
 
@@ -1013,10 +1369,20 @@ export default function SolarSystem({ onLogin }: { onLogin: () => void }) {
   };
 
   const handleLogin = () => {
+    playZoomSound();
     setIsZoomingIn(true);
     setLoginVisible(false); // Hide the card during zoom
     // Let the zoom kick in, then route away
     setTimeout(() => {
+        // Stop music/alarms before transitioning
+        if (romanceRef.current) {
+            romanceRef.current.pause();
+            romanceRef.current.currentTime = 0;
+        }
+        if (alarmRef.current) {
+            alarmRef.current.pause();
+            alarmRef.current.currentTime = 0;
+        }
       onLogin();
     }, 900);
   };
@@ -1065,16 +1431,19 @@ export default function SolarSystem({ onLogin }: { onLogin: () => void }) {
               radius={0.7} 
             />
             <Glitch 
-              delay={new THREE.Vector2(5.0, 10.0)} // min and max delay between glitches
-              duration={new THREE.Vector2(0.3, 0.6)} // min and max duration of a glitch
-              strength={new THREE.Vector2(0.3, 0.8)} // min and max strength
-              mode={1} // GlitchMode.SPORADIC
-              active // turn on/off the effect (switches between "mode" prop and GlitchMode.DISABLED)
-              ratio={0.85} // Threshold for strong glitches
+              delay={new THREE.Vector2(0, 0)} 
+              duration={new THREE.Vector2(0.1, 0.3)} 
+              strength={new THREE.Vector2(0.3, 0.8)} 
+              mode={1} 
+              active={glitchActive}
+              ratio={0.85} 
             />
           </EffectComposer>
         </Canvas>
       
+        {/* Danger HUD Overlay */}
+        {(selectedPlanet?.compatibilityScore ?? 100) < 50 && <DangerHUD />}
+
         {/* Cyberpunk HUD Overlay */}
         <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-8 md:p-12 overflow-hidden">
           {/* Header Section */}
@@ -1149,6 +1518,7 @@ export default function SolarSystem({ onLogin }: { onLogin: () => void }) {
             <LoginCard 
               className="animate-in fade-in slide-in-from-right-20 duration-500" 
               onLogin={handleLogin}
+              planet={selectedPlanet}
             />
           </div>
         )}
