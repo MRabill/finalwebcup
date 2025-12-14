@@ -38,11 +38,17 @@ export default function AstraPage() {
     const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
     const [isPlayingVoice, setIsPlayingVoice] = useState(false);
     const [voicePulse, setVoicePulse] = useState(0);
+    const [typingMessageId, setTypingMessageId] = useState<string | null>(null);
+    const [typingProgress, setTypingProgress] = useState(0);
+
     const audioRef = useRef<HTMLAudioElement>(null);
     const audioContextRef = useRef<AudioContext | null>(null);
     const analyserRef = useRef<AnalyserNode | null>(null);
     const animationFrameRef = useRef<number | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    // text currently being "typed"
+    const typingTextRef = useRef<string>("");
 
     useEffect(() => {
         const sessionUUID = `${Math.random()
@@ -78,11 +84,9 @@ export default function AstraPage() {
                 throw new Error(`TTS error: ${response.statusText}`);
             }
 
-            // Get the audio blob from the response
             const audioBlob = await response.blob();
             const audioUrl = URL.createObjectURL(audioBlob);
 
-            // Play the audio
             if (audioRef.current) {
                 audioRef.current.src = audioUrl;
                 audioRef.current.play().catch((error) => {
@@ -104,12 +108,11 @@ export default function AstraPage() {
     useEffect(() => {
         if (isPlayingVoice && audioRef.current) {
             try {
-                // Initialize Web Audio API
-                const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+                const audioContext = new (window.AudioContext ||
+                    (window as any).webkitAudioContext)();
                 const analyser = audioContext.createAnalyser();
-
-                // Create a source from the media element
-                const source = audioContext.createMediaElementAudioSource(audioRef.current);
+                const source =
+                    audioContext.createMediaElementAudioSource(audioRef.current);
 
                 source.connect(analyser);
                 analyser.connect(audioContext.destination);
@@ -118,26 +121,20 @@ export default function AstraPage() {
                 audioContextRef.current = audioContext;
                 analyserRef.current = analyser;
 
-                // Animation loop for pulse based on audio frequency
                 const dataArray = new Uint8Array(analyser.frequencyBinCount);
 
                 const animate = () => {
                     analyser.getByteFrequencyData(dataArray);
-
-                    // Calculate average frequency
-                    const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-
-                    // Normalize to 0-1 range and add some easing
+                    const average =
+                        dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
                     const pulse = Math.min(average / 255, 1);
                     setVoicePulse(pulse);
-
                     animationFrameRef.current = requestAnimationFrame(animate);
                 };
 
                 animate();
             } catch (error) {
                 console.error("Error setting up audio visualization:", error);
-                // Fallback: simple pulse animation without frequency analysis
                 const simplePulse = () => {
                     const time = Date.now() % 1000;
                     const pulse = Math.sin(time / 200) * 0.5 + 0.5;
@@ -147,13 +144,11 @@ export default function AstraPage() {
                 simplePulse();
             }
         } else {
-            // Cleanup animation frame and reset pulse
             if (animationFrameRef.current) {
                 cancelAnimationFrame(animationFrameRef.current);
             }
             setVoicePulse(0);
 
-            // Close audio context if it exists
             if (audioContextRef.current) {
                 audioContextRef.current.close();
                 audioContextRef.current = null;
@@ -201,44 +196,87 @@ export default function AstraPage() {
 
             const data = await response.json();
 
+            const rawOutput =
+                data.output || "// ASTRA-Λ SYSTEM: Signal lost. Please try again.";
+            const cleanOutput = removeImageUrl(rawOutput);
+            const aiMessageId = (Date.now() + 1).toString();
+
             const aiResponse: Message = {
-                id: (Date.now() + 1).toString(),
-                text:
-                    data.output || "// ASTRA-Λ SYSTEM: Signal lost. Please try again.",
+                id: aiMessageId,
+                text: rawOutput,
                 timestamp: new Date(),
                 isUser: false,
             };
 
             setMessages((prev) => [...prev, aiResponse]);
 
-            // Play voice output if enabled
-            if (isVoiceEnabled) {
-                const cleanText = removeImageUrl(data.output || "");
-                if (cleanText) {
-                    await playVoiceOutput(cleanText);
-                }
+            // setup typing effect
+            typingTextRef.current = cleanOutput;
+            setTypingMessageId(aiMessageId);
+            setTypingProgress(0);
+
+            if (isVoiceEnabled && cleanOutput) {
+                await playVoiceOutput(cleanOutput);
             }
         } catch (error) {
             console.error("Error sending message:", error);
 
+            const errorRaw = `// ASTRA-Λ SYSTEM ERROR: Failed to process request. ${error instanceof Error ? error.message : "Unknown error"
+                }`;
+            const cleanError = removeImageUrl(errorRaw);
+            const errorMessageId = (Date.now() + 1).toString();
+
             const errorMessage: Message = {
-                id: (Date.now() + 1).toString(),
-                text: `// ASTRA-Λ SYSTEM ERROR: Failed to process request. ${error instanceof Error ? error.message : "Unknown error"
-                    }`,
+                id: errorMessageId,
+                text: errorRaw,
                 timestamp: new Date(),
                 isUser: false,
             };
 
             setMessages((prev) => [...prev, errorMessage]);
+
+            typingTextRef.current = cleanError;
+            setTypingMessageId(errorMessageId);
+            setTypingProgress(0);
         } finally {
             setIsLoading(false);
         }
     };
 
+    // Typing effect driven only by typingMessageId + typingTextRef
+    useEffect(() => {
+        if (!typingMessageId) return;
+
+        const fullText = typingTextRef.current || "";
+        if (!fullText.length) {
+            setTypingMessageId(null);
+            return;
+        }
+
+        setTypingProgress(0);
+        let index = 0;
+
+        const intervalId = window.setInterval(() => {
+            index += 1;
+
+            if (index >= fullText.length) {
+                setTypingProgress(fullText.length);
+                setTypingMessageId(null);
+                window.clearInterval(intervalId);
+            } else {
+                setTypingProgress(index);
+            }
+        }, 35);
+
+        return () => {
+            window.clearInterval(intervalId);
+        };
+    }, [typingMessageId]);
+
     return (
-        <div className="relative h-screen w-full overflow-hidden bg-slate-950 text-slate-50" >
+        <div className="relative h-screen w-full overflow-hidden bg-slate-950 text-slate-50">
             {/* Cyberpunk background */}
-            < div className="absolute inset-0" >
+            <div className="absolute inset-0">
                 <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" />
                 <div
                     className="absolute inset-0 opacity-10"
@@ -246,16 +284,15 @@ export default function AstraPage() {
                         backgroundImage: `linear-gradient(0deg, transparent 24%, rgba(34,211,238,0.12) 25%, rgba(34,211,238,0.12) 26%, transparent 27%, transparent 74%, rgba(34,211,238,0.12) 75%, rgba(34,211,238,0.12) 76%, transparent 77%, transparent),
                               linear-gradient(90deg, transparent 24%, rgba(236,72,153,0.12) 25%, rgba(236,72,153,0.12) 26%, transparent 27%, transparent 74%, rgba(236,72,153,0.12) 75%, rgba(236,72,153,0.12) 76%, transparent 77%, transparent)`,
                         backgroundSize: "48px 48px",
-                    }
-                    }
+                    }}
                 />
-                < div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.18),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(236,72,153,0.18),_transparent_55%)]" />
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.18),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(236,72,153,0.18),_transparent_55%)]" />
             </div>
 
             {/* Optional page content placeholder */}
-            <div className="relative z-0 flex h-full w-full items-center justify-center" >
-                <p className="font-sarpanch text-sm uppercase tracking-[0.25em] text-slate-600" >
-        // astra - λ interface idle
+            <div className="relative z-0 flex h-full w-full items-center justify-center">
+                <p className="font-sarpanch text-sm uppercase tracking-[0.25em] text-slate-600">
+          // astra - λ interface idle
                 </p>
             </div>
 
@@ -266,29 +303,27 @@ export default function AstraPage() {
                 className="group fixed bottom-6 right-6 z-30 flex h-16 w-16 items-center justify-center rounded-full border border-cyan-400/60 bg-slate-950/90 shadow-[0_0_35px_rgba(34,211,238,0.7)] backdrop-blur-xl transition-all duration-300 hover:scale-105 hover:border-fuchsia-400 hover:shadow-[0_0_45px_rgba(236,72,153,0.8)]"
             >
                 <div className="pointer-events-none absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,_rgba(34,211,238,0.2),_rgba(236,72,153,0.2),_rgba(129,140,248,0.25),_rgba(34,211,238,0.2))] opacity-0 blur-md transition-opacity duration-300 group-hover:opacity-100" />
-                <div className="relative flex items-center justify-center" >
+                <div className="relative flex items-center justify-center">
                     <Orb
-                        palette={
-                            {
-                                mainBgStart: "rgb(34, 211, 238)",
-                                mainBgEnd: "rgb(129, 140, 248)",
-                                shadowColor1: "rgba(34, 211, 238, 0)",
-                                shadowColor2: "rgba(34, 211, 238, 0.5)",
-                                shadowColor3: "rgba(244, 244, 245, 0.9)",
-                                shadowColor4: "rgb(59, 130, 246)",
-                                shapeAStart: "rgb(45, 212, 191)",
-                                shapeAEnd: "rgba(15, 23, 42, 0)",
-                                shapeBStart: "rgb(224, 242, 254)",
-                                shapeBMiddle: "rgb(56, 189, 248)",
-                                shapeBEnd: "rgba(15, 23, 42, 0)",
-                                shapeCStart: "rgba(226, 232, 240, 0)",
-                                shapeCMiddle: "rgba(56, 189, 248, 0)",
-                                shapeCEnd: "#22d3ee",
-                                shapeDStart: "rgba(103, 232, 249, 0)",
-                                shapeDMiddle: "rgba(56, 189, 248, 0)",
-                                shapeDEnd: "#6366f1",
-                            }
-                        }
+                        palette={{
+                            mainBgStart: "rgb(34, 211, 238)",
+                            mainBgEnd: "rgb(129, 140, 248)",
+                            shadowColor1: "rgba(34, 211, 238, 0)",
+                            shadowColor2: "rgba(34, 211, 238, 0.5)",
+                            shadowColor3: "rgba(244, 244, 245, 0.9)",
+                            shadowColor4: "rgb(59, 130, 246)",
+                            shapeAStart: "rgb(45, 212, 191)",
+                            shapeAEnd: "rgba(15, 23, 42, 0)",
+                            shapeBStart: "rgb(224, 242, 254)",
+                            shapeBMiddle: "rgb(56, 189, 248)",
+                            shapeBEnd: "rgba(15, 23, 42, 0)",
+                            shapeCStart: "rgba(226, 232, 240, 0)",
+                            shapeCMiddle: "rgba(56, 189, 248, 0)",
+                            shapeCEnd: "#22d3ee",
+                            shapeDStart: "rgba(103, 232, 249, 0)",
+                            shapeDMiddle: "rgba(56, 189, 248, 0)",
+                            shapeDEnd: "#6366f1",
+                        }}
                         size={0.9}
                         animationSpeedBase={1.6}
                         animationSpeedHue={1}
@@ -321,8 +356,8 @@ export default function AstraPage() {
                             >
                                 <div
                                     className={`absolute inset-0 blur-3xl transition-all duration-100 ${isPlayingVoice
-                                            ? "bg-cyan-400/60 opacity-100"
-                                            : "bg-cyan-400/30 opacity-50"
+                                        ? "bg-cyan-400/60 opacity-100"
+                                        : "bg-cyan-400/30 opacity-50"
                                         }`}
                                     style={{
                                         boxShadow: isPlayingVoice
@@ -392,7 +427,7 @@ export default function AstraPage() {
                         {/* Chat body */}
                         <main className="flex-1 overflow-hidden px-4 py-4 md:px-6 md:py-6">
                             <div className="flex h-full flex-col gap-4">
-                                {/* Conversation area – now takes more space visually */}
+                                {/* Conversation area */}
                                 <div
                                     className="flex-1 overflow-y-auto rounded-2xl border border-cyan-500/20 bg-slate-950/80 px-4 py-4 md:px-5 md:py-5 shadow-inner shadow-cyan-500/15"
                                     style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
@@ -400,10 +435,11 @@ export default function AstraPage() {
                                     {messages.length === 0 ? (
                                         <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
                                             <p className="font-sarpanch text-base text-slate-500">
-                  // NO TRANSMISSIONS YET
+                        // NO TRANSMISSIONS YET
                                             </p>
                                             <p className="max-w-sm text-sm font-sarpanch uppercase tracking-[0.22em] text-cyan-500/70">
-                                                type your first prompt below to link with the astra - λ mesh
+                                                type your first prompt below to link with the astra - λ
+                                                mesh
                                             </p>
                                         </div>
                                     ) : (
@@ -411,11 +447,18 @@ export default function AstraPage() {
                                             {messages.map((message) => {
                                                 const imageUrl = extractImageUrl(message.text);
                                                 const textWithoutImage = removeImageUrl(message.text);
+                                                const isTyping =
+                                                    message.id === typingMessageId && !message.isUser;
+                                                const displayedText = isTyping
+                                                    ? textWithoutImage.slice(0, typingProgress)
+                                                    : textWithoutImage;
 
                                                 return (
                                                     <div
                                                         key={message.id}
-                                                        className={`flex ${message.isUser ? "justify-end" : "justify-start"
+                                                        className={`flex ${message.isUser
+                                                            ? "justify-end"
+                                                            : "justify-start"
                                                             }`}
                                                     >
                                                         <div
@@ -423,11 +466,11 @@ export default function AstraPage() {
                                                                 }`}
                                                         >
                                                             {imageUrl && (
-                                                                <div className="overflow-hidden rounded-xl border border-cyan-500/40 bg-slate-900/70 shadow-[0_0_25px_rgba(34,211,238,0.5)]">
+                                                                <div className="overflow-hidden rounded-xl border border-cyan-500/40 bg-slate-900/70 shadow-[0_0_25px_rgba(34,211,238,0.5)] max-w-[320px] md:max-w-[420px]">
                                                                     <img
                                                                         src={imageUrl}
                                                                         alt="AI response image"
-                                                                        className="h-auto w-full object-cover transition-transform duration-500 hover:scale-105"
+                                                                        className="h-auto w-full max-h-72 object-contain transition-transform duration-500 hover:scale-105"
                                                                         onError={(e) => {
                                                                             e.currentTarget.style.display = "none";
                                                                         }}
@@ -438,25 +481,28 @@ export default function AstraPage() {
                                                             {textWithoutImage && (
                                                                 <div
                                                                     className={`relative rounded-xl border px-4 py-3 text-base leading-relaxed shadow-[0_0_20px_rgba(15,23,42,0.9)] backdrop-blur-md ${message.isUser
-                                                                            ? "border-cyan-400/60 bg-cyan-500/10 text-cyan-100"
-                                                                            : "border-fuchsia-400/60 bg-fuchsia-500/10 text-fuchsia-100"
+                                                                        ? "border-cyan-400/60 bg-cyan-500/10 text-cyan-100"
+                                                                        : "border-fuchsia-400/60 bg-fuchsia-500/10 text-fuchsia-100"
                                                                         }`}
                                                                 >
                                                                     {!message.isUser && (
                                                                         <span className="mb-1 inline-block font-sarpanch text-xs uppercase tracking-[0.24em] text-fuchsia-200/80">
-                                // astra - λ
+                                      // astra - λ
                                                                         </span>
                                                                     )}
 
                                                                     <p
                                                                         className={
                                                                             !message.isUser
-                                                                                ? "font-orbitron text-base"
+                                                                                ? "font-russo-one text-base"
                                                                                 : ""
                                                                         }
                                                                     >
-                                                                        {textWithoutImage}
+                                                                        {displayedText}
                                                                     </p>
+                                                                    {isTyping && (
+                                                                        <span className="ml-1 inline-block h-4 w-2 animate-pulse bg-fuchsia-200/70 align-middle" />
+                                                                    )}
 
                                                                     <div className="mt-2 flex items-center justify-end gap-2 text-xs font-sarpanch uppercase tracking-[0.18em] text-slate-400">
                                                                         <span className="h-[3px] w-8 bg-gradient-to-r from-transparent via-slate-500/70 to-transparent" />
@@ -467,8 +513,8 @@ export default function AstraPage() {
 
                                                                     <div
                                                                         className={`pointer-events-none absolute inset-0 rounded-xl border border-transparent ${message.isUser
-                                                                                ? "shadow-[0_0_25px_rgba(34,211,238,0.65)]"
-                                                                                : "shadow-[0_0_25px_rgba(236,72,153,0.65)]"
+                                                                            ? "shadow-[0_0_25px_rgba(34,211,238,0.65)]"
+                                                                            : "shadow-[0_0_25px_rgba(236,72,153,0.65)]"
                                                                             } opacity-30`}
                                                                     />
                                                                 </div>
@@ -495,11 +541,6 @@ export default function AstraPage() {
                                 {/* Input area with icons on the right */}
                                 <form onSubmit={handleSendPrompt} className="space-y-2">
                                     <div className="group rounded-2xl border border-cyan-500/40 bg-slate-950/80 px-3 py-2 shadow-[0_0_35px_rgba(34,211,238,0.4)] transition-all duration-300 focus-within:border-cyan-300 focus-within:shadow-[0_0_45px_rgba(34,211,238,0.7)]">
-                                        <div className="flex items-center gap-2 px-1 pb-1 text-xs font-sarpanch uppercase tracking-[0.22em] text-slate-500">
-                                            <span className="h-[3px] w-10 bg-gradient-to-r from-cyan-500 via-fuchsia-500 to-transparent" />
-                                            <span>input channel</span>
-                                        </div>
-
                                         <div className="flex items-center gap-2 px-1">
                                             <Input
                                                 type="text"
@@ -510,27 +551,38 @@ export default function AstraPage() {
                                                 disabled={isLoading}
                                             />
 
-                                            {/* Icons on the right */}
                                             <div className="flex items-center gap-1">
                                                 {/* Voice toggle */}
                                                 <Button
                                                     type="button"
                                                     size="icon"
-                                                    onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
+                                                    onClick={() =>
+                                                        setIsVoiceEnabled((prev) => !prev)
+                                                    }
                                                     className={`h-9 w-9 border text-xs font-orbitron tracking-[0.2em] transition-all duration-300 ${isVoiceEnabled
-                                                            ? "bg-emerald-500/20 border-emerald-500/60 text-emerald-300 hover:bg-emerald-500/30"
-                                                            : "border-slate-500/60 bg-transparent text-slate-400 hover:border-slate-400 hover:bg-slate-500/10"
+                                                        ? "bg-emerald-500/20 border-emerald-500/60 text-emerald-300 hover:bg-emerald-500/30"
+                                                        : "border-slate-500/60 bg-transparent text-slate-400 hover:border-slate-400 hover:bg-slate-500/10"
                                                         }`}
-                                                    title={isVoiceEnabled ? "Voice output enabled" : "Voice output disabled"}
+                                                    title={
+                                                        isVoiceEnabled
+                                                            ? "Voice output enabled"
+                                                            : "Voice output disabled"
+                                                    }
                                                 >
-                                                    {isVoiceEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                                                    {isVoiceEnabled ? (
+                                                        <Volume2 className="h-4 w-4" />
+                                                    ) : (
+                                                        <VolumeX className="h-4 w-4" />
+                                                    )}
                                                 </Button>
 
                                                 {/* Send */}
                                                 <Button
                                                     type="submit"
                                                     size="icon"
-                                                    disabled={!prompt.trim() || isLoading || isPlayingVoice}
+                                                    disabled={
+                                                        !prompt.trim() || isLoading || isPlayingVoice
+                                                    }
                                                     className="h-9 w-9 font-orbitron bg-cyan-400 text-xs font-semibold tracking-[0.28em] text-slate-950 hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
                                                     title="Transmit"
                                                 >
@@ -544,6 +596,9 @@ export default function AstraPage() {
                                                     onClick={() => {
                                                         setMessages([]);
                                                         setPrompt("");
+                                                        setTypingMessageId(null);
+                                                        setTypingProgress(0);
+                                                        typingTextRef.current = "";
                                                     }}
                                                     className="h-9 w-9 border border-fuchsia-500/60 bg-transparent text-xs font-orbitron tracking-[0.2em] text-fuchsia-300 hover:border-fuchsia-400 hover:bg-fuchsia-500/10"
                                                     title="Purge log"
@@ -552,11 +607,6 @@ export default function AstraPage() {
                                                 </Button>
                                             </div>
                                         </div>
-                                    </div>
-
-                                    <div className="flex items-center justify-end gap-2 text-xs font-sarpanch uppercase tracking-[0.22em] text-slate-500">
-                                        <span className="h-1 w-1 animate-pulse rounded-full bg-emerald-400" />
-                                        <span>linked to astra - λ mesh // route: mrabeel.n8n.cloud</span>
                                     </div>
                                 </form>
 
@@ -571,8 +621,6 @@ export default function AstraPage() {
                     </div>
                 </div>
             )}
-
-
         </div>
     );
 }

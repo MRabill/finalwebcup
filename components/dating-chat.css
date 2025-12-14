@@ -1,0 +1,301 @@
+/* Dating Chat Interface Animations */
+
+@keyframes glitch-text {
+  0% {
+    text-shadow: -2px 0 #00ffff, 2px 0 #d946ef;
+  }
+  20% {
+    text-shadow: -2px 0 #d946ef, 2px 0 #00ffff;
+  }
+  40% {
+    text-shadow: -2px 0 #00ffff, 2px 0 #d946ef;
+  }
+  60% {
+    text-shadow: -2px 0 #d946ef, 2px 0 #00ffff;
+  }
+  80% {
+    text-shadow: -2px 0 #00ffff, 2px 0 #d946ef;
+  }
+  100% {
+    text-shadow: -2px 0 #d946ef, 2px 0 #00ffff;
+  }
+}
+
+@keyframes scan-line {
+  0% {
+    top: 0%;
+  }
+  100% {
+    top: 100%;
+  }
+}
+
+@keyframes neon-glow {
+  0% {
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.5),
+      inset 0 0 10px rgba(0, 255, 255, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.8),
+      inset 0 0 20px rgba(0, 255, 255, 0.2);
+  }
+  100% {
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.5),
+      inset 0 0 10px rgba(0, 255, 255, 0.1);
+  }
+}
+
+@keyframes pulse-glow {
+  0% {
+    opacity: 0.5;
+    box-shadow: 0 0 5px rgba(217, 70, 239, 0.3);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 15px rgba(217, 70, 239, 0.6);
+  }
+  100% {
+    opacity: 0.5;
+    box-shadow: 0 0 5px rgba(217, 70, 239, 0.3);
+  }
+}
+
+@keyframes float-up {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes blink {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes rgb-split {
+  0% {
+    text-shadow: -2px 0 #00ffff, 2px 2px #d946ef, -2px 2px #ffff00;
+  }
+  50% {
+    text-shadow: -1px 0 #00ffff, 1px 1px #d946ef, -1px 1px #ffff00;
+  }
+  100% {
+    text-shadow: -2px 0 #00ffff, 2px 2px #d946ef, -2px 2px #ffff00;
+  }
+}
+
+@keyframes data-load {
+  0% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.5;
+  }
+}
+
+/* Apply animations to elements */
+.glitch-text {
+  animation: glitch-text 0.5s infinite;
+}
+
+.scan-line {
+  animation: scan-line 3s linear infinite;
+  position: relative;
+}
+
+.neon-glow {
+  animation: neon-glow 2s ease-in-out infinite;
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.float-up {
+  animation: float-up 0.5s ease-out;
+}
+
+.data-loading {
+  animation: data-load 1.5s ease-in-out infinite;
+}
+
+.typing-text {
+  animation: float-up 0.6s ease-out;
+}
+
+/* Cyberpunk message bubble styling */
+.message-bubble-user {
+  animation: float-up 0.3s ease-out;
+  border-left: 3px solid #00ffff;
+}
+
+.message-bubble-ai {
+  animation: float-up 0.3s ease-out;
+  border-left: 3px solid #d946ef;
+}
+
+/* Status text animation */
+.status-text {
+  animation: data-load 1.5s ease-in-out infinite;
+  font-family: "Courier New", monospace;
+  letter-spacing: 0.1em;
+}
+
+/* Input focus glow */
+.chat-input:focus {
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.5),
+    inset 0 0 5px rgba(0, 255, 255, 0.1);
+}
+
+/* Button hover effects */
+.cyber-button:hover {
+  animation: neon-glow 0.6s ease-in-out;
+}
+
+/* Waiting room spinner */
+@keyframes spinner-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner-cyan {
+  animation: spinner-rotate 3s linear infinite;
+}
+
+.spinner-magenta {
+  animation: spinner-rotate 2s linear infinite reverse;
+}
+
+/* Terminal effect */
+.terminal-text::before {
+  content: "";
+  animation: blink 1s infinite;
+}
+
+/* Background grid animation (subtle) */
+@keyframes grid-shift {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(2px);
+  }
+}
+
+.grid-bg {
+  animation: grid-shift 20s linear infinite;
+}
+
+/* Typing indicator */
+@keyframes dot-bounce {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  30% {
+    transform: translateY(-10px);
+    opacity: 1;
+  }
+}
+
+.typing-dot {
+  animation: dot-bounce 1.4s infinite;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* Message appearance */
+@keyframes message-appear {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.chat-message {
+  animation: message-appear 0.4s ease-out;
+}
+
+/* Invite button pulse */
+@keyframes invite-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 255, 255, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(0, 255, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 255, 255, 0);
+  }
+}
+
+.invite-btn {
+  animation: invite-pulse 2s infinite;
+}
+
+/* Neon border glow */
+@keyframes neon-border {
+  0% {
+    border-color: rgba(0, 255, 255, 0.5);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+  }
+  50% {
+    border-color: rgba(0, 255, 255, 0.8);
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
+  }
+  100% {
+    border-color: rgba(0, 255, 255, 0.5);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+  }
+}
+
+.neon-border {
+  animation: neon-border 2s ease-in-out infinite;
+}
+
+/* Decrypting effect */
+@keyframes decrypt {
+  0% {
+    clip-path: polygon(0 0, 100% 0, 100% 0, 0 0);
+  }
+  50% {
+    clip-path: polygon(0 0, 100% 0, 100% 50%, 0 50%);
+  }
+  100% {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+  }
+}
+
+.decrypt-animation {
+  animation: decrypt 1.5s ease-in-out;
+}
