@@ -8,6 +8,8 @@ import DatingChatInterface from "@/components/dating-chat-interface";
 import { Orb } from "@/components/orb";
 import AstraChat from "@/components/astra-chat";
 import { supabase } from "@/lib/supabase";
+import { LanguageProvider, useLanguage } from "@/components/LanguageContext";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 interface ProfileData {
     id: string;
@@ -26,7 +28,7 @@ interface ProfileData {
 }
 
 export default function ProfilePageContent({
-  profile,
+    profile,
 }: {
     profile: ProfileData;
 }) {
@@ -34,6 +36,7 @@ export default function ProfilePageContent({
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const router = useRouter();
+    const { t } = useLanguage();
 
     const handleLogout = async () => {
         setIsLoggingOut(true);
@@ -67,12 +70,11 @@ export default function ProfilePageContent({
                                 </div>
 
                                 <div>
-                                    <h3 className="text-2xl font-black text-red-500 tracking-widest font-orbitron mb-2 uppercase glitch" data-glitch="TERMINATE LINK?">
-                                        TERMINATE LINK?
+                                    <h3 className="text-2xl font-black text-red-500 tracking-widest font-orbitron mb-2 uppercase glitch" data-glitch={t("terminateLink")}>
+                                        {t("terminateLink")}
                                     </h3>
-                                    <p className="text-red-200/60 font-mono text-xs">
-                                        WARNING: NEURAL SYNC WILL BE SEVERED.<br />
-                                        UNSAVED DATA FRAGMENTS MAY BE LOST.
+                                    <p className="text-red-200/60 font-mono text-xs whitespace-pre-line">
+                                        {t("terminateWarning")}
                                     </p>
                                 </div>
 
@@ -81,7 +83,7 @@ export default function ProfilePageContent({
                                         onClick={() => setShowLogoutConfirm(false)}
                                         className="flex-1 py-3 border border-red-500/30 text-red-400 font-mono text-xs hover:bg-red-500/10 transition-all uppercase tracking-widest"
                                     >
-                                        CANCEL
+                                        {t("cancel")}
                                     </button>
                                     <button
                                         onClick={handleLogout}
@@ -89,10 +91,10 @@ export default function ProfilePageContent({
                                         className="flex-1 py-3 bg-red-600 text-black font-black font-orbitron tracking-widest hover:bg-red-500 hover:shadow-[0_0_20px_rgba(220,38,38,0.6)] transition-all uppercase flex items-center justify-center gap-2"
                                     >
                                         {isLoggingOut ? (
-                                            <span className="animate-pulse">ABORTING...</span>
+                                            <span className="animate-pulse">{t("aborting")}</span>
                                         ) : (
                                             <>
-                                                <span>CONFIRM</span>
+                                                <span>{t("confirm")}</span>
                                                 <AlertTriangle className="w-3 h-3" />
                                             </>
                                         )}
@@ -104,14 +106,16 @@ export default function ProfilePageContent({
                 </div>
             )}
 
+            <LanguageSwitcher />
+
             {/* Logout Trigger Button */}
             <button
                 onClick={() => setShowLogoutConfirm(true)}
                 className="fixed top-6 right-6 z-50 group flex items-center gap-2 px-4 py-2 bg-black/60 border border-red-500/30 backdrop-blur-md hover:border-red-500 hover:bg-red-950/30 transition-all duration-300"
             >
                 <div className="flex flex-col items-end">
-                    <span className="text-[10px] text-red-500/70 font-mono tracking-widest group-hover:text-red-400">SYSTEM</span>
-                    <span className="text-xs text-red-500 font-bold font-orbitron tracking-wider group-hover:text-red-300">LOGOUT</span>
+                    <span className="text-[10px] text-red-500/70 font-mono tracking-widest group-hover:text-red-400">{t("system")}</span>
+                    <span className="text-xs text-red-500 font-bold font-orbitron tracking-wider group-hover:text-red-300">{t("logout")}</span>
                 </div>
                 <div className="w-8 h-8 rounded border border-red-500/50 flex items-center justify-center group-hover:bg-red-500 group-hover:text-black transition-all text-red-500">
                     <LogOut className="w-4 h-4" />
@@ -161,8 +165,8 @@ export default function ProfilePageContent({
                             <div className="h-full w-full bg-cyan-400 origin-left animate-[scale-x_2s_ease-in-out_infinite]" />
                         </div>
                         <div className="text-xs text-cyan-600 font-mono leading-relaxed pl-2 border-l-2 border-cyan-500/50">
-                            TARGET_ACQUIRED // <span className="text-cyan-300">LOCKED</span><br />
-                            ENCRYPTION_LEVEL: {profile.augmentation_level.toUpperCase()}
+                            {t("targetAcquired")} // <span className="text-cyan-300">{t("locked")}</span><br />
+                            {t("encryptionLevel")}: {profile.augmentation_level.toUpperCase()}
                         </div>
                     </div>
 
@@ -176,7 +180,7 @@ export default function ProfilePageContent({
                     {/* Bottom Data Stream */}
                     <div className="mb-24 ml-12 relative z-10">
                         <div className="bg-black/40 backdrop-blur-sm p-4 border border-cyan-500/20 border-l-4 border-l-cyan-500">
-                            <div className="text-cyan-500 font-bold text-xs mb-2 tracking-widest">DATA_STREAM_INCOMING</div>
+                            <div className="text-cyan-500 font-bold text-xs mb-2 tracking-widest">{t("dataStreamIncoming")}</div>
                             <div className="space-y-1 font-mono text-[10px] text-cyan-400/60">
                                 {Array.from({ length: 6 }).map((_, i) => (
                                     <div key={i} className="truncate w-48">
@@ -237,7 +241,7 @@ export default function ProfilePageContent({
                                 <div className="text-red-500 font-black tracking-[0.2em] text-lg glitch" data-glitch="WARNING">WARNING</div>
                             </div>
                             <div className="text-[10px] text-pink-500/70 font-mono max-w-[200px] leading-relaxed border-t border-pink-500/30 pt-2">
-                                UNAUTHORIZED SIGNAL DETECTED IN SECTOR 7G. SECURITY PROTOCOLS ENGAGED.
+                                {t("unauthorizedSignal")}
                             </div>
                         </div>
                         {/* Hazard Stripes */}
@@ -257,26 +261,26 @@ export default function ProfilePageContent({
                                 className="text-[10px] uppercase tracking-[0.35em] text-gray-400"
                                 style={{ fontFamily: "'Orbitron','Space Grotesk',sans-serif" }}
                             >
-                                Upcoming Character
+                                {t("upcomingCharacter")}
                             </span>
                         </div>
                         <div className="flex-1 flex justify-center">
                             <h1
                                 className="text-5xl md:text-7xl lg:text-8xl font-black uppercase text-gray-200 leading-none text-center glitch"
-                                data-glitch="ZENLESS ZONE ZERO"
+                                data-glitch={`${t("zenless")} ${t("zoneZero")}`}
                                 style={{
                                     fontFamily: "'Orbitron','Space Grotesk',sans-serif",
                                     letterSpacing: "0.2em",
                                 }}
                             >
-                ZENLESS
-                <br />
-                                ZONE ZERO
+                                {t("zenless")}
+                                <br />
+                                {t("zoneZero")}
                             </h1>
                         </div>
                         <div className="flex flex-col items-end gap-2">
                             <span className="text-[10px] uppercase tracking-[0.25em] text-gray-400 font-mono">
-                                Render on CYBERSPACE
+                                {t("renderOnCyberspace")}
                             </span>
                             <div className="flex items-center gap-2">
                                 <div className="px-3 py-1 bg-gradient-to-r from-cyan-400 to-magenta-500 text-black text-[10px] font-black uppercase tracking-[0.25em]">
@@ -287,9 +291,9 @@ export default function ProfilePageContent({
                                 </div>
                             </div>
                             <div className="text-[9px] text-gray-500 font-mono uppercase tracking-[0.25em] text-right">
-                <div>
-                  {profile.archetype} / {profile.augmentation_level}
-                </div>
+                                <div>
+                                    {profile.archetype} / {profile.augmentation_level}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -327,27 +331,27 @@ export default function ProfilePageContent({
                                 {/* bottom stat strip */}
                                 <div className="grid grid-cols-3 text-xs font-mono uppercase tracking-[0.25em]">
                                     <div className="border-t-[3px] border-r-[1px] border-cyan-400 bg-[#0f1729] px-3 py-3">
-                                        <div className="text-cyan-400 mb-1">Rank</div>
+                                        <div className="text-cyan-400 mb-1">{t("rank")}</div>
                                         <div className="flex items-center gap-2">
                                             <span className="text-white text-2xl font-black">S</span>
                                             <span className="px-2 py-0.5 bg-white text-black font-black text-[10px]">
-                                                Prime
+                                                {t("prime")}
                                             </span>
                                         </div>
                                     </div>
                                     <div className="border-t-[3px] border-r-[1px] border-cyan-400 bg-[#0a0e27] px-3 py-3">
-                                        <div className="text-purple-300 mb-1">Class</div>
+                                        <div className="text-purple-300 mb-1">{t("class")}</div>
                                         <div className="text-white text-[11px]">
-                      {profile.archetype}
-                      <br />
+                                            {profile.archetype}
+                                            <br />
                                             {profile.augmentation_level}
                                         </div>
                                     </div>
                                     <div className="border-t-[3px] border-cyan-400 bg-[#140a24] px-3 py-3">
-                                        <div className="text-purple-300 mb-1">Risk</div>
-                    <div className="text-magenta-400 text-xl font-black">
-                      {profile.risk_tolerance}/10
-                    </div>
+                                        <div className="text-purple-300 mb-1">{t("risk")}</div>
+                                        <div className="text-magenta-400 text-xl font-black">
+                                            {profile.risk_tolerance}/10
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -379,26 +383,26 @@ export default function ProfilePageContent({
                                 </div>
                                 <div className="px-5 py-2 grid grid-cols-2 gap-2 text-[12px] font-mono uppercase tracking-[0.25em] text-gray-300">
                                     <div className="flex justify-between">
-                                        <span>Status</span>
-                                        <span className="text-lime-400 font-black ">Active</span>
+                                        <span>{t("status")}</span>
+                                        <span className="text-lime-400 font-black ">{t("active")}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span>Vibe</span>
-                    <span className="text-purple-300 font-black">
-                      {profile.vibe}
-                    </span>
+                                        <span>{t("vibe")}</span>
+                                        <span className="text-purple-300 font-black">
+                                            {profile.vibe}
+                                        </span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span>Skill</span>
-                    <span className="text-white font-black">
-                      {profile.primary_skill}
-                    </span>
+                                        <span>{t("skill")}</span>
+                                        <span className="text-white font-black">
+                                            {profile.primary_skill}
+                                        </span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span>Risk Level</span>
-                    <span className="text-white font-black ">
-                      {profile.risk_tolerance}/10
-                    </span>
+                                        <span>{t("riskLevel")}</span>
+                                        <span className="text-white font-black ">
+                                            {profile.risk_tolerance}/10
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -409,15 +413,15 @@ export default function ProfilePageContent({
                                     style={{ borderColor: "#00ffff" }}
                                 >
                                     <div className="text-[10px] text-cyan-400 uppercase tracking-[0.25em] font-black mb-2">
-                                        Archetype
+                                        {t("archetype")}
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <div className="w-10 h-10 border-2 border-cyan-400 flex items-center justify-center text-cyan-400 text-lg font-black">
                                             ⚡
                                         </div>
                                         <div className="text-[12px] text-white font-black uppercase leading-tight">
-                      {profile.archetype}
-                      <br />
+                                            {profile.archetype}
+                                            <br />
                                             {profile.augmentation_level}
                                         </div>
                                     </div>
@@ -428,12 +432,12 @@ export default function ProfilePageContent({
                                     style={{ borderColor: "#d946ef" }}
                                 >
                                     <div className="text-[10px] text-magenta-400 uppercase tracking-[0.25em] font-black mb-2">
-                                        Looking For
+                                        {t("lookingFor")}
                                     </div>
                                     <div className="text-[12px] text-white font-black uppercase leading-tight">
-                    {profile.looking_for}
-                    <br />
-                                        {profile.love_mood} Energy
+                                        {profile.looking_for}
+                                        <br />
+                                        {profile.love_mood} {t("energy")}
                                     </div>
                                 </div>
                             </div>
@@ -443,29 +447,29 @@ export default function ProfilePageContent({
                                 style={{ borderColor: "#a78bfa" }}
                             >
                                 <div className="text-[10px] text-purple-400 uppercase tracking-[0.25em] font-black mb-2">
-                                    System Status
+                                    {t("systemStatus")}
                                 </div>
                                 <div className="space-y-1 text-[12px] font-mono text-gray-300">
                                     <div className="flex justify-between">
-                                        <span>Age / Built</span>
-                    <span className="text-lime-400 font-black ">
-                      {profile.age_or_build_year}
-                    </span>
+                                        <span>{t("ageBuilt")}</span>
+                                        <span className="text-lime-400 font-black ">
+                                            {profile.age_or_build_year}
+                                        </span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span>Risk Tolerance</span>
-                    <span
-                      className="text-red-400 font-black glitch"
-                      data-glitch={profile.risk_tolerance.toString()}
-                    >
-                      {profile.risk_tolerance}/10
-                    </span>
+                                        <span>{t("riskTolerance")}</span>
+                                        <span
+                                            className="text-red-400 font-black glitch"
+                                            data-glitch={profile.risk_tolerance.toString()}
+                                        >
+                                            {profile.risk_tolerance}/10
+                                        </span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span>Mood</span>
-                    <span className="text-cyan-400 font-black ">
-                      {profile.love_mood}
-                    </span>
+                                        <span>{t("mood")}</span>
+                                        <span className="text-cyan-400 font-black ">
+                                            {profile.love_mood}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -474,7 +478,7 @@ export default function ProfilePageContent({
                                 onClick={() => setShowChat(true)}
                                 className="w-full mt-4 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white font-black py-4 px-6 rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/50 uppercase tracking-wider text-sm"
                             >
-                                💬 Open Chat with {profile.alias}
+                                💬 {t("openChat")} {profile.alias}
                             </button>
                         </div>
                     </div>

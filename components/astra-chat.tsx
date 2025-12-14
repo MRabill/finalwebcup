@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Orb } from "@/components/orb";
 import { Volume2, VolumeX, SendHorizontal, Trash2 } from "lucide-react";
+import { useLanguage } from "@/components/LanguageContext";
 
 interface Message {
     id: string;
@@ -44,6 +45,7 @@ export default function AstraChat({ position = "bottom-right" }: AstraChatProps)
     const [voicePulse, setVoicePulse] = useState(0);
     const [typingMessageId, setTypingMessageId] = useState<string | null>(null);
     const [typingProgress, setTypingProgress] = useState(0);
+    const { t } = useLanguage();
 
     const audioRef = useRef<HTMLAudioElement>(null);
     const audioContextRef = useRef<AudioContext | null>(null);
@@ -201,7 +203,7 @@ export default function AstraChat({ position = "bottom-right" }: AstraChatProps)
             const data = await response.json();
 
             const rawOutput =
-                data.output || "// ASTRA-Λ SYSTEM: Signal lost. Please try again.";
+                data.output || t("astraLost");
             const cleanOutput = removeImageUrl(rawOutput);
             const aiMessageId = (Date.now() + 1).toString();
 
@@ -225,7 +227,7 @@ export default function AstraChat({ position = "bottom-right" }: AstraChatProps)
         } catch (error) {
             console.error("Error sending message:", error);
 
-            const errorRaw = `// ASTRA-Λ SYSTEM ERROR: Failed to process request. ${error instanceof Error ? error.message : "Unknown error"
+            const errorRaw = `${t("astraError")} ${error instanceof Error ? error.message : "Unknown error"
                 }`;
             const cleanError = removeImageUrl(errorRaw);
             const errorMessageId = (Date.now() + 1).toString();
@@ -323,12 +325,12 @@ export default function AstraChat({ position = "bottom-right" }: AstraChatProps)
                 <div className="fixed inset-0 z-50 flex items-center justify-center">
                     {/* Backdrop */}
                     <div
-                        className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl"
+                        className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm"
                         onClick={() => setIsChatOpen(false)}
                     />
 
                     {/* Modal card */}
-                    <div className="relative z-50 flex h-[85vh] w-full max-w-5xl flex-col overflow-visible rounded-3xl border border-cyan-500/40 bg-slate-950/90 shadow-[0_0_80px_rgba(34,211,238,0.7)]">
+                    <div className="relative z-50 flex h-[85vh] w-full max-w-5xl flex-col overflow-visible rounded-3xl border border-cyan-500/30 bg-slate-950/85 shadow-[0_0_30px_rgba(34,211,238,0.3)]">
                         {/* Orb centered on top */}
                         <div className="pointer-events-none absolute -top-16 left-1/2 -translate-x-1/2">
                             <div
@@ -351,7 +353,7 @@ export default function AstraChat({ position = "bottom-right" }: AstraChatProps)
                                             : "0 0 30px rgba(34, 211, 238, 0.3)",
                                     }}
                                 />
-                                <div className="relative flex h-full w-full items-center justify-center rounded-full border border-cyan-400/60 bg-slate-950/70 shadow-[0_0_45px_rgba(34,211,238,0.9)]">
+                                <div className="relative flex h-full w-full items-center justify-center rounded-full border border-cyan-400/50 bg-slate-950/60 shadow-[0_0_20px_rgba(34,211,238,0.4)]">
                                     <Orb
                                         palette={{
                                             mainBgStart: "rgb(34, 211, 238)",
@@ -390,21 +392,21 @@ export default function AstraChat({ position = "bottom-right" }: AstraChatProps)
                                         ASTRA - Λ
                                     </div>
                                     <p className="font-sarpanch text-sm uppercase tracking-[0.25em] text-slate-400">
-                                        quantum cognition chat console
+                                        {t("quantumCognition")}
                                     </p>
                                 </div>
                             </div>
 
                             <div className="flex items-center gap-3">
                                 <span className="rounded-full border border-lime-400/40 bg-lime-400/10 px-3 py-1 text-xs font-sarpanch uppercase tracking-[0.22em] text-lime-300">
-                                    online
+                                    {t("online")}
                                 </span>
                                 <button
                                     type="button"
                                     onClick={() => setIsChatOpen(false)}
                                     className="rounded-full border border-fuchsia-500/60 bg-fuchsia-500/10 px-3 py-1 text-sm font-sarpanch uppercase tracking-[0.22em] text-fuchsia-200 hover:bg-fuchsia-500/20"
                                 >
-                                    close
+                                    {t("close")}
                                 </button>
                             </div>
                         </header>
@@ -414,17 +416,16 @@ export default function AstraChat({ position = "bottom-right" }: AstraChatProps)
                             <div className="flex h-full flex-col gap-4">
                                 {/* Conversation area */}
                                 <div
-                                    className="flex-1 overflow-y-auto rounded-2xl border border-cyan-500/20 bg-slate-950/80 px-4 py-4 md:px-5 md:py-5 shadow-inner shadow-cyan-500/15"
+                                    className="flex-1 overflow-y-auto rounded-2xl border border-cyan-500/20 bg-slate-950/50 px-4 py-4 md:px-5 md:py-5 shadow-inner shadow-cyan-500/10"
                                     style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
                                 >
                                     {messages.length === 0 ? (
                                         <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
                                             <p className="font-sarpanch text-base text-slate-500">
-                                                // NO TRANSMISSIONS YET
+                                                {t("noTransmissions")}
                                             </p>
                                             <p className="max-w-sm text-sm font-sarpanch uppercase tracking-[0.22em] text-cyan-500/70">
-                                                type your first prompt below to link with the astra - λ
-                                                mesh
+                                                {t("typePrompt")}
                                             </p>
                                         </div>
                                     ) : (
@@ -451,7 +452,7 @@ export default function AstraChat({ position = "bottom-right" }: AstraChatProps)
                                                                 }`}
                                                         >
                                                             {imageUrl && (
-                                                                <div className="overflow-hidden rounded-xl border border-cyan-500/40 bg-slate-900/70 shadow-[0_0_25px_rgba(34,211,238,0.5)] max-w-[320px] md:max-w-[420px]">
+                                                                <div className="overflow-hidden rounded-xl border border-cyan-500/30 bg-slate-900/50 shadow-[0_0_15px_rgba(34,211,238,0.3)] max-w-[320px] md:max-w-[420px]">
                                                                     <img
                                                                         src={imageUrl}
                                                                         alt="AI response image"
@@ -498,9 +499,9 @@ export default function AstraChat({ position = "bottom-right" }: AstraChatProps)
 
                                                                     <div
                                                                         className={`pointer-events-none absolute inset-0 rounded-xl border border-transparent ${message.isUser
-                                                                            ? "shadow-[0_0_25px_rgba(34,211,238,0.65)]"
-                                                                            : "shadow-[0_0_25px_rgba(236,72,153,0.65)]"
-                                                                            } opacity-30`}
+                                                                            ? "shadow-[0_0_15px_rgba(34,211,238,0.3)]"
+                                                                            : "shadow-[0_0_15px_rgba(236,72,153,0.3)]"
+                                                                            } opacity-20`}
                                                                     />
                                                                 </div>
                                                             )}
@@ -511,9 +512,9 @@ export default function AstraChat({ position = "bottom-right" }: AstraChatProps)
 
                                             {isLoading && (
                                                 <div className="flex justify-start">
-                                                    <div className="flex items-center gap-3 rounded-xl border border-fuchsia-400/60 bg-fuchsia-500/10 px-4 py-2 text-sm font-sarpanch uppercase tracking-[0.24em] text-fuchsia-100 shadow-[0_0_20px_rgba(236,72,153,0.45)]">
+                                                    <div className="flex items-center gap-3 rounded-xl border border-fuchsia-400/50 bg-fuchsia-500/10 px-4 py-2 text-sm font-sarpanch uppercase tracking-[0.24em] text-fuchsia-100 shadow-[0_0_10px_rgba(236,72,153,0.25)]">
                                                         <span className="h-2 w-2 animate-ping rounded-full bg-fuchsia-300" />
-                                                        <span>processing quantum stream</span>
+                                                        <span>{t("processing")}</span>
                                                     </div>
                                                 </div>
                                             )}
@@ -525,11 +526,11 @@ export default function AstraChat({ position = "bottom-right" }: AstraChatProps)
 
                                 {/* Input area with icons on the right */}
                                 <form onSubmit={handleSendPrompt} className="space-y-2">
-                                    <div className="group rounded-2xl border border-cyan-500/40 bg-slate-950/80 px-3 py-2 shadow-[0_0_35px_rgba(34,211,238,0.4)] transition-all duration-300 focus-within:border-cyan-300 focus-within:shadow-[0_0_45px_rgba(34,211,238,0.7)]">
+                                    <div className="group rounded-2xl border border-cyan-500/30 bg-slate-950/50 px-3 py-2 shadow-[0_0_15px_rgba(34,211,238,0.2)] transition-all duration-300 focus-within:border-cyan-300 focus-within:shadow-[0_0_25px_rgba(34,211,238,0.4)]">
                                         <div className="flex items-center gap-2 px-1">
                                             <Input
                                                 type="text"
-                                                placeholder="Type a prompt to ping the ASTRA - Λ core..."
+                                                placeholder={t("inputPlaceholder")}
                                                 value={prompt}
                                                 onChange={(e) => setPrompt(e.target.value)}
                                                 className="h-10 flex-1 border-0 bg-transparent text-base text-cyan-100 placeholder:text-slate-600 focus-visible:ring-0 focus-visible:ring-offset-0"
@@ -550,8 +551,8 @@ export default function AstraChat({ position = "bottom-right" }: AstraChatProps)
                                                         }`}
                                                     title={
                                                         isVoiceEnabled
-                                                            ? "Voice output enabled"
-                                                            : "Voice output disabled"
+                                                            ? t("voiceEnabled")
+                                                            : t("voiceDisabled")
                                                     }
                                                 >
                                                     {isVoiceEnabled ? (
@@ -569,7 +570,7 @@ export default function AstraChat({ position = "bottom-right" }: AstraChatProps)
                                                         !prompt.trim() || isLoading || isPlayingVoice
                                                     }
                                                     className="h-9 w-9 font-orbitron bg-cyan-400 text-xs font-semibold tracking-[0.28em] text-slate-950 hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
-                                                    title="Transmit"
+                                                    title={t("transmit")}
                                                 >
                                                     <SendHorizontal className="h-4 w-4" />
                                                 </Button>
@@ -586,7 +587,7 @@ export default function AstraChat({ position = "bottom-right" }: AstraChatProps)
                                                         typingTextRef.current = "";
                                                     }}
                                                     className="h-9 w-9 border border-fuchsia-500/60 bg-transparent text-xs font-orbitron tracking-[0.2em] text-fuchsia-300 hover:border-fuchsia-400 hover:bg-fuchsia-500/10"
-                                                    title="Purge log"
+                                                    title={t("purgeLog")}
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
