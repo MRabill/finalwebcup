@@ -261,6 +261,12 @@ export default function ParallaxLogin({ onBack, isActive = true }: { onBack?: ()
         const finalPayload = { ...formData, [FORM_STEPS[currentStep].id]: value };
 
         if (isLastStep) {
+            // Save profile data locally for usage in the app
+            if (typeof window !== "undefined") {
+                localStorage.setItem("user_profile", JSON.stringify(finalPayload));
+                localStorage.setItem("user_avatar", finalPayload.avatar_select);
+            }
+
             setIsSubmitting(true);
             cyberToast.show("UPLINKING CREDENTIALS...", "info");
 
