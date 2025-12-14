@@ -206,57 +206,33 @@ const PLANETS: PlanetData[] = [
 
 // --- Components ---
 
-// Loading fallback component - shows immediately
+// Loading fallback component
 function UniverseBackgroundFallback() {
   return (
-    <group>
-      <mesh>
-        <sphereGeometry args={[400, 32, 32]} />
-        <meshBasicMaterial 
-          side={THREE.BackSide} 
-          toneMapped={false}
-          color={new THREE.Color(0.05, 0.05, 0.15)}
-        />
-      </mesh>
-      {/* Simple procedural stars for instant display */}
-      <mesh>
-        <sphereGeometry args={[390, 32, 32]} />
-        <meshBasicMaterial 
-          side={THREE.BackSide} 
-          transparent 
-          opacity={0.6}
-          toneMapped={false}
-          color={new THREE.Color(0.3, 0.3, 0.4)}
-        />
-      </mesh>
-    </group>
+    <mesh>
+      <sphereGeometry args={[400, 16, 16]} />
+      <meshBasicMaterial color={new THREE.Color(0.05, 0.05, 0.1)} side={THREE.BackSide} />
+    </mesh>
   );
 }
 
 function UniverseBackground({ onBackgroundClick }: { onBackgroundClick?: () => void }) {
-  const [texturesLoaded, setTexturesLoaded] = useState(false);
   const [starTexture, skyTexture] = useLoader(THREE.TextureLoader, [
     "/textures/8k_stars.jpg",
     "/textures/stars.png"
   ]);
 
-  // Mark textures as loaded when they're ready
-  useEffect(() => {
-    if (starTexture && skyTexture) {
-      // Optimize texture settings for faster loading
-      starTexture.generateMipmaps = true;
-      starTexture.minFilter = THREE.LinearMipmapLinearFilter;
-      starTexture.magFilter = THREE.LinearFilter;
-      starTexture.anisotropy = 2; // Reduce anisotropy for faster loading
-      
-      skyTexture.generateMipmaps = true;
-      skyTexture.minFilter = THREE.LinearMipmapLinearFilter;
-      skyTexture.magFilter = THREE.LinearFilter;
-      skyTexture.anisotropy = 2;
-      
-      setTexturesLoaded(true);
-    }
-  }, [starTexture, skyTexture]);
+  // Optimize texture settings for faster loading
+  if (starTexture) {
+    starTexture.generateMipmaps = true;
+    starTexture.minFilter = THREE.LinearMipmapLinearFilter;
+    starTexture.magFilter = THREE.LinearFilter;
+  }
+  if (skyTexture) {
+    skyTexture.generateMipmaps = true;
+    skyTexture.minFilter = THREE.LinearMipmapLinearFilter;
+    skyTexture.magFilter = THREE.LinearFilter;
+  }
 
   return (
     <group onClick={(e) => {
@@ -264,69 +240,53 @@ function UniverseBackground({ onBackgroundClick }: { onBackgroundClick?: () => v
       if (e.delta > 5) return;
       onBackgroundClick && onBackgroundClick();
     }}>
-      {/* Show simple version immediately, upgrade to texture when loaded */}
-      {!texturesLoaded ? (
-        <UniverseBackgroundFallback />
-      ) : (
-        <>
-          <mesh>
-            <sphereGeometry args={[400, 32, 32]} />
-            <meshBasicMaterial 
-              map={starTexture} 
-              side={THREE.BackSide} 
-              toneMapped={false}
-              color={new THREE.Color(1.2, 1.2, 1.2)}
-            />
-          </mesh>
-          <mesh>
-            <sphereGeometry args={[390, 32, 32]} />
-            <meshBasicMaterial 
-              map={skyTexture} 
-              side={THREE.BackSide} 
-              transparent 
-              opacity={0.3} 
-              toneMapped={false}
-              color={new THREE.Color(0.8, 0.9, 1.0)}
-            />
-          </mesh>
-        </>
-      )}
+      <mesh>
+        {/* Reduced from 64,64 to 32,32 for better performance */}
+        <sphereGeometry args={[400, 32, 32]} />
+        <meshBasicMaterial 
+          map={starTexture} 
+          side={THREE.BackSide} 
+          toneMapped={false}
+          color={new THREE.Color(1.2, 1.2, 1.2)}
+        />
+      </mesh>
+      <mesh>
+        {/* Reduced from 64,64 to 32,32 for better performance */}
+        <sphereGeometry args={[390, 32, 32]} />
+        <meshBasicMaterial 
+          map={skyTexture} 
+          side={THREE.BackSide} 
+          transparent 
+          opacity={0.3} 
+          toneMapped={false}
+          color={new THREE.Color(0.8, 0.9, 1.0)}
+        />
+      </mesh>
     </group>
   );
 }
 
 function Sun() {
-  const [textureLoaded, setTextureLoaded] = useState(false);
   const texture = useLoader(THREE.TextureLoader, "/textures/sun.png");
   const lightRef = useRef<THREE.PointLight>(null);
 
   // Optimize texture
-  useEffect(() => {
-    if (texture) {
-      texture.generateMipmaps = true;
-      texture.minFilter = THREE.LinearMipmapLinearFilter;
-      texture.magFilter = THREE.LinearFilter;
-      texture.anisotropy = 2;
-      setTextureLoaded(true);
-    }
-  }, [texture]);
+  if (texture) {
+    texture.generateMipmaps = true;
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+  }
 
   return (
     <group>
       <mesh>
+        {/* Reduced from 64,64 to 32,32 for better performance */}
         <sphereGeometry args={[5, 32, 32]} />
-        {textureLoaded ? (
-          <meshBasicMaterial 
-            map={texture} 
-            color={new THREE.Color(3, 2.4, 1.5)} 
-            toneMapped={false}
-          />
-        ) : (
-          <meshBasicMaterial 
-            color={new THREE.Color(3, 2.4, 1.5)} 
-            toneMapped={false}
-          />
-        )}
+        <meshBasicMaterial 
+          map={texture} 
+          color={new THREE.Color(3, 2.4, 1.5)} 
+          toneMapped={false}
+        />
       </mesh>
       <pointLight 
         ref={lightRef}
@@ -897,16 +857,12 @@ function Planet({
   const startAngle = data.initialAngle;
   const [isRotationPaused, setRotationPaused] = useState(false);
 
-  const [textureReady, setTextureReady] = useState(false);
-
   // Optimize texture loading
   useEffect(() => {
     if (texture) {
       texture.generateMipmaps = true;
       texture.minFilter = THREE.LinearMipmapLinearFilter;
       texture.magFilter = THREE.LinearFilter;
-      texture.anisotropy = 2; // Reduce for faster loading
-      setTextureReady(true);
     }
   }, [texture]);
 
@@ -941,20 +897,13 @@ function Planet({
         onPointerOut={() => document.body.style.cursor = 'auto'}
       >
         <mesh castShadow receiveShadow>
+          {/* Reduced from 32,32 to 24,24 for better performance */}
           <sphereGeometry args={[data.size, 24, 24]} />
-          {textureReady ? (
-            <meshStandardMaterial 
-              map={texture} 
-              roughness={0.7} 
-              metalness={0.1} 
-            />
-          ) : (
-            <meshStandardMaterial 
-              color={new THREE.Color(0.5, 0.5, 0.6)} 
-              roughness={0.7} 
-              metalness={0.1} 
-            />
-          )}
+          <meshStandardMaterial 
+            map={texture} 
+            roughness={0.7} 
+            metalness={0.1} 
+          />
         </mesh>
         
        
@@ -1642,8 +1591,8 @@ export default function SolarSystem({ onLogin }: { onLogin: () => void }) {
               depth: true
             }}
             onCreated={() => {
-              // Hide loading state immediately - fallback colors show instantly, textures upgrade in background
-              setIsLoading(false);
+              // Hide loading state once canvas is ready
+              setTimeout(() => setIsLoading(false), 500);
             }}
             dpr={[1, 2]} // Limit pixel ratio for better performance
           >
