@@ -1,0 +1,46 @@
+{
+  "output": [
+    {
+      "candidate_id": "7dd8d3f9-8806-4ccf-b82a-9712ec76043a",
+      "alias": "GhostPacket",
+      "avatar_url": "https://fstopgvgzqymmvzerpbk.supabase.co/storage/v1/object/public/cyber/cyberpunk-city-street-night-with-neon-lights-futuristic-aesthetic.jpg",
+      "match": true,
+      "match_score": 90,
+      "confidence": 0.94,
+      "risk_level": "MODERATE",
+      "chemistry_index": 88,
+      "stability_index": 80,
+      "drama_potential": 25,
+      "diplomatic_impact": "PEACE",
+      "notes": "Cold vibe and temporary alliance looking align well with primary user's profile."
+    },
+    {
+      "candidate_id": "7723af84-fa0b-4904-b46a-a21573c21203",
+      "alias": "ZeroTrace",
+      "avatar_url": "https://fstopgvgzqymmvzerpbk.supabase.co/storage/v1/object/public/cyber/cyberpunk-warrior-urban-scenery.jpg",
+      "match": false,
+      "match_score": 75,
+      "confidence": 0.82,
+      "risk_level": "MODERATE",
+      "chemistry_index": 72,
+      "stability_index": 68,
+      "drama_potential": 40,
+      "diplomatic_impact": "NEUTRAL",
+      "notes": "Strategic love mood and partner in crime seeking fit moderately with the user."
+    },
+    {
+      "candidate_id": "b027b0e4-631f-4db5-93ba-2cfdaa1d7944",
+      "alias": "NeonRonin",
+      "avatar_url": "https://fstopgvgzqymmvzerpbk.supabase.co/storage/v1/object/public/cyber/3d-cartoon-character-djing-party.jpg",
+      "match": false,
+      "match_score": 65,
+      "confidence": 0.7,
+      "risk_level": "HIGH",
+      "chemistry_index": 60,
+      "stability_index": 55,
+      "drama_potential": 50,
+      "diplomatic_impact": "NEUTRAL",
+      "notes": "Mysterious vibe with partner in crime intention but less alignment in love mood."
+    }
+  ]
+}

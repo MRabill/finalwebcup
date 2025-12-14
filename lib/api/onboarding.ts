@@ -1,5 +1,5 @@
 export const ONBOARDING_WEBHOOK_URL =
-  "https://mrabeel.app.n8n.cloud/webhook-test/0c09ed69-3255-4b57-9a58-1b28c68e182d";
+  "https://mrabeel.app.n8n.cloud/webhook/0c09ed69-3255-4b57-9a58-1b28c68e182d";
 
 export const DEFAULT_AVATAR_URL =
   "https://fstopgvgzqymmvzerpbk.supabase.co/storage/v1/object/public/cyber/futuristic-person-listening-music-ultra-modern-headphones.jpg";

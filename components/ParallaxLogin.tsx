@@ -156,8 +156,8 @@ const FORM_STEPS = [
         type: "textarea",
         placeholder: "TRANSMIT A SHORT SIGNAL...",
         hint: "One line. No noise. Pure intent.",
-        pattern: /^.{10,}$/,
-        errorMsg: "BIO TOO SHORT (MIN 10 CHARS)",
+        pattern: null,
+        errorMsg: "",
     },
     {
         id: "avatar_select",
@@ -242,9 +242,14 @@ export default function ParallaxLogin({ onBack, isActive = true }: { onBack?: ()
         }
         
         // Validate single-value steps with pattern (if provided)
-        if (stepType !== "multi-select" && currentStepConfig.pattern && !currentStepConfig.pattern.test(inputValue)) {
-             setError(currentStepConfig.errorMsg);
-             return;
+        if (
+            stepType !== "multi-select" &&
+            currentStepConfig.pattern &&
+            currentStepConfig.pattern instanceof RegExp &&
+            !currentStepConfig.pattern.test(inputValue)
+        ) {
+            setError(currentStepConfig.errorMsg || "INVALID INPUT");
+            return;
         }
 
         setError(null);
@@ -764,23 +769,30 @@ export default function ParallaxLogin({ onBack, isActive = true }: { onBack?: ()
                                                     ))}
                                                 </div>
                                             ) : FORM_STEPS[currentStep].type === "select" ? (
-                                                <select
-                                                    value={inputValue}
-                                                    onChange={(e) => {
-                                                        setInputValue(e.target.value);
-                                                        if (error) setError(null);
-                                                    }}
-                                                    className={`w-full bg-black/50 border ${error ? 'border-red-500/50' : 'border-white/10'} text-white font-mono text-base py-4 px-4 focus:outline-none focus:border-cyan-500/50 focus:bg-cyan-950/10 transition-all`}
-                                                >
-                                                    <option value="" disabled>
-                                                        {FORM_STEPS[currentStep].placeholder}
-                                                    </option>
-                                                    {FORM_STEPS[currentStep].options?.map((opt, idx) => (
-                                                        <option key={idx} value={opt}>
-                                                            {opt}
+                                                <div className="relative group">
+                                                    <select
+                                                        value={inputValue}
+                                                        onChange={(e) => {
+                                                            setInputValue(e.target.value);
+                                                            if (error) setError(null);
+                                                        }}
+                                                        className={`w-full appearance-none bg-gradient-to-r from-[#0b0f1e] via-[#0f1428] to-[#0b0f1e] border ${error ? 'border-red-500/50' : 'border-white/15'} text-white font-mono text-base py-4 px-4 pr-12 focus:outline-none focus:border-cyan-400 focus:shadow-[0_0_25px_rgba(34,211,238,0.25)] transition-all uppercase tracking-[0.18em] rounded`}
+                                                    >
+                                                        <option value="" disabled className="text-white/40">
+                                                            {FORM_STEPS[currentStep].placeholder}
                                                         </option>
-                                                    ))}
-                                                </select>
+                                                        {FORM_STEPS[currentStep].options?.map((opt, idx) => (
+                                                            <option key={idx} value={opt} className="bg-[#0b0f1e] text-white uppercase">
+                                                                {opt}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center">
+                                                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-cyan-500/10 border border-cyan-400/40 text-cyan-200 text-xs font-black tracking-[0.2em] group-focus-within:border-cyan-300 group-focus-within:text-cyan-100">
+                                                            ▼
+                                                        </span>
+                                                    </div>
+                                                </div>
                                             ) : FORM_STEPS[currentStep].type === "multi-select" ? (
                                                 <div className="grid grid-cols-2 gap-3">
                                                     {FORM_STEPS[currentStep].options?.map((opt, idx) => {
@@ -900,7 +912,7 @@ export default function ParallaxLogin({ onBack, isActive = true }: { onBack?: ()
                                     
                                     <IconButton 
                                         text="WELCOME TO THE GALAXY_" 
-                                        onClick={() => router.push("/")}
+                                        onClick={() => router.push("/profiles/swipe")}
                                         className="cursor-pointer"
                                         disabled={false}
                                     />
@@ -913,4 +925,3 @@ export default function ParallaxLogin({ onBack, isActive = true }: { onBack?: ()
         </div>
     );
 }
-

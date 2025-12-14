@@ -1,6 +1,8 @@
 import { supabase, hasSupabaseCredentials } from "@/lib/supabase";
 import seedProfiles from "./seed-profiles.json";
 
+export const dynamic = "force-static";
+
 type Profile = {
   id: string;
   alias: string;
@@ -51,15 +53,11 @@ export default async function ProfilesPage() {
       <div className="max-w-6xl mx-auto">
         <header className="mb-8">
           <p className="text-xs uppercase tracking-[0.2em] text-cyan-300">
-            Character Database
+            Matched Profiles
           </p>
           <h1 className="text-4xl md:text-5xl font-black tracking-tight">
             Profiles
           </h1>
-          <p className="mt-2 text-sm text-gray-400">
-            Avatars are now pulled live from the <code>character_profiles</code> table using{" "}
-            <code>avatar_url</code>.
-          </p>
           {error && (
             <div className="mt-3 rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
               {error}

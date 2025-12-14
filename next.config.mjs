@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "export",
-   trailingSlash: true,
+  trailingSlash: true,
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -10,6 +10,14 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+  },
+  async rewrites() {
+    return [
+      {
+        source: "/profiles/index.html",
+        destination: "/profiles",
+      },
+    ];
   },
 };
 
