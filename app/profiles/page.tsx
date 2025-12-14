@@ -1,4 +1,5 @@
 import { supabase, hasSupabaseCredentials } from "@/lib/supabase";
+import seedProfiles from "./seed-profiles.json";
 
 type Profile = {
   id: string;
@@ -18,7 +19,7 @@ type Profile = {
 
 async function fetchProfiles(): Promise<{ profiles: Profile[]; error?: string }> {
   if (!hasSupabaseCredentials || !supabase) {
-    return { profiles: [], error: "Supabase credentials are not configured." };
+    return { profiles: seedProfiles as Profile[], error: "Supabase credentials are not configured. Showing seed data." };
   }
 
   const { data, error } = await supabase
@@ -29,10 +30,10 @@ async function fetchProfiles(): Promise<{ profiles: Profile[]; error?: string }>
     .order("created_at", { ascending: false });
 
   if (error) {
-    return { profiles: [], error: error.message };
+    return { profiles: seedProfiles as Profile[], error: error.message };
   }
 
-  return { profiles: data ?? [] };
+  return { profiles: (data ?? []) as Profile[] };
 }
 
 export default async function ProfilesPage() {
